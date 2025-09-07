@@ -4,7 +4,7 @@ import { usePhotos } from '../store/PhotoContext';
 import PhotoItem from '../components/ItemCard/PhotoItem';
 
 export default function CatalogScreen() {
-  const { photos, removePhoto, analyzePhoto } = usePhotos();
+  const { photos, removePhoto, analyzePhoto, estimatePrice } = usePhotos();
 
   if (photos.length === 0) {
     return (
@@ -22,7 +22,12 @@ export default function CatalogScreen() {
         data={photos}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <PhotoItem photo={item} onDelete={removePhoto} onAnalyze={analyzePhoto} />
+          <PhotoItem 
+            photo={item} 
+            onDelete={removePhoto} 
+            onAnalyze={analyzePhoto} 
+            onEstimatePrice={estimatePrice}
+          />
         )}
         showsVerticalScrollIndicator={false}
       />
