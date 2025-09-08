@@ -9,14 +9,31 @@ interface GalleryPickerProps {
 
 export default function GalleryPicker({ onClose }: GalleryPickerProps) {
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
+  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const { addPhoto } = usePhotos();
 
-  const pickImages = async () => {
-    // Request permission
+  const checkPermission = async () => {
+    const { status } = await ImagePicker.getMediaLibraryPermissionsAsync();
+    setHasPermission(status === 'granted');
+    return status === 'granted';
+  };
+
+  const requestPermission = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission Required', 'Please grant access to your photo library');
-      return;
+    setHasPermission(status === 'granted');
+    return status === 'granted';
+  };
+
+  const pickImages = async () => {
+    // Check if we have permission
+    const hasAccess = await checkPermission();
+    
+    if (!hasAccess) {
+      const granted = await requestPermission();
+      if (!granted) {
+        Alert.alert('Permission Required', 'Please grant access to your photo library to select images');
+        return;
+      }
     }
 
     // Launch image picker
@@ -62,18 +79,23 @@ export default function GalleryPicker({ onClose }: GalleryPickerProps) {
           <Text style={styles.closeText}>✕</Text>
         </TouchableOpacity>
         <Text style={styles.title}>Select Images</Text>
-        <TouchableOpacity onPress={pickImages} style={styles.addButton}>
-          <Text style={styles.addText}>+ Add</Text>
-        </TouchableOpacity>
+        {selectedImages.length > 0 && (
+          <TouchableOpacity onPress={pickImages} style={styles.addMoreButton}>
+            <Text style={styles.addMoreText}>+</Text>
+          </TouchableOpacity>
+        )}
+        {selectedImages.length === 0 && <View style={styles.headerSpacer} />}
       </View>
 
       {selectedImages.length === 0 ? (
         <View style={styles.emptyState}>
           <Text style={styles.emptyEmoji}>🖼️</Text>
-          <Text style={styles.emptyTitle}>No Images Selected</Text>
-          <Text style={styles.emptySubtitle}>Tap "Add" to select images from your gallery</Text>
+          <Text style={styles.emptyTitle}>Select Images from Gallery</Text>
+          <Text style={styles.emptySubtitle}>
+            Choose multiple images from your photo library to add to your catalog
+          </Text>
           <TouchableOpacity style={styles.pickButton} onPress={pickImages}>
-            <Text style={styles.pickButtonText}>Choose Images</Text>
+            <Text style={styles.pickButtonText}>📷 Choose Images</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -131,16 +153,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#333',
   },
-  addButton: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-  },
-  addText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: '600',
+  headerSpacer: {
+    width: 40, // Same width as close button for balance
   },
   emptyState: {
     flex: 1,
@@ -210,6 +224,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderTopWidth: 1,
     borderTopColor: '#e0e0e0',
+  },
+  addMoreButton: {
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  addMoreText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
   },
   uploadButton: {
     backgroundColor: '#34C759',

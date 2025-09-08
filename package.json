@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@google-cloud/vision": "^5.3.3",
+    "@react-native-async-storage/async-storage": "^2.2.0",
     "@react-navigation/bottom-tabs": "^7.4.7",
     "@react-navigation/core": "^7.12.4",
     "@react-navigation/native": "^7.1.17",

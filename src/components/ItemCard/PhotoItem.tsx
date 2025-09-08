@@ -35,6 +35,11 @@ export default function PhotoItem({ photo, onDelete, onAnalyze, onEstimatePrice 
 
   return (
     <View style={styles.container}>
+      {/* Timestamp */}
+      <View style={styles.timestampContainer}>
+        <Text style={styles.timestamp}>{formatDate(photo.timestamp)}</Text>
+      </View>
+      
       <Image source={{ uri: photo.uri }} style={styles.image} />
       
       {/* AI Analysis Results */}
@@ -98,15 +103,15 @@ export default function PhotoItem({ photo, onDelete, onAnalyze, onEstimatePrice 
 
       {/* Action Buttons */}
       <View style={styles.info}>
-        <Text style={styles.timestamp}>{formatDate(photo.timestamp)}</Text>
-        <View style={styles.buttonRow}>
+        {/* Primary Action Buttons */}
+        <View style={styles.primaryButtons}>
           {!photo.isAnalyzing && (
             <TouchableOpacity 
               style={photo.aiAnalysis ? styles.reanalyzeButton : styles.analyzeButton} 
               onPress={() => onAnalyze(photo.id)}
             >
               <Text style={photo.aiAnalysis ? styles.reanalyzeText : styles.analyzeText}>
-                {photo.aiAnalysis ? '🔄 Reanalyze' : '🤖 Analyze'}
+                {photo.aiAnalysis ? '🔄 Re-analyze' : '🤖 Analyze'}
               </Text>
             </TouchableOpacity>
           )}
@@ -120,13 +125,15 @@ export default function PhotoItem({ photo, onDelete, onAnalyze, onEstimatePrice 
               </Text>
             </TouchableOpacity>
           )}
-          <TouchableOpacity 
-            style={styles.deleteButton} 
-            onPress={handleDelete}
-          >
-            <Text style={styles.deleteText}>🗑️</Text>
-          </TouchableOpacity>
         </View>
+        
+        {/* Delete Button - Always visible */}
+        <TouchableOpacity 
+          style={styles.deleteButton} 
+          onPress={handleDelete}
+        >
+          <Text style={styles.deleteText}>🗑️</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -146,8 +153,6 @@ const styles = StyleSheet.create({
   image: {
     width: '100%',
     height: 200,
-    borderTopLeftRadius: 8,
-    borderTopRightRadius: 8,
   },
   aiResults: {
     padding: 12,
@@ -200,19 +205,32 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
   },
+  timestampContainer: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: '#f8f9fa',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
+  },
+  timestamp: {
+    fontSize: 12,
+    color: '#666',
+    textAlign: 'center',
+  },
   info: {
     padding: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  timestamp: {
-    fontSize: 14,
-    color: '#666',
-  },
-  buttonRow: {
+  primaryButtons: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
   },
   analyzeButton: {
     backgroundColor: '#007AFF',
@@ -243,7 +261,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 6,
-    marginRight: 8,
   },
   priceText: {
     color: 'white',
