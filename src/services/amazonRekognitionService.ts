@@ -22,6 +22,14 @@ async function imageUriToBase64(uri: string): Promise<string> {
     const response = await fetch(uri);
     const blob = await response.blob();
     
+    // Check if image is too large (>4MB to leave buffer for base64 encoding)
+    const maxSizeBytes = 4 * 1024 * 1024; // 4MB
+    if (blob.size > maxSizeBytes) {
+      console.log(`Image size ${blob.size} bytes exceeds Amazon Rekognition limit (5MB), skipping...`);
+      throw new Error(`Image too large for Amazon Rekognition: ${blob.size} bytes (max 5MB)`);
+    }
+    
+    // Convert to base64
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -34,7 +42,9 @@ async function imageUriToBase64(uri: string): Promise<string> {
       reader.readAsDataURL(blob);
     });
   } catch (error) {
-    throw new Error('Failed to convert image to base64');
+    console.error('Error in imageUriToBase64:', error);
+    // Re-throw the original error to preserve the specific error message
+    throw error;
   }
 }
 
@@ -181,11 +191,17 @@ export async function analyzeWithAmazonRekognition(imageUri: string): Promise<AI
   } catch (error) {
     console.error('Amazon Rekognition API error:', error);
     
+    // Check if it's a size-related error
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    const isSizeError = errorMessage.includes('too large') || errorMessage.includes('5242880');
+    
     return {
       items: [],
       processingTime: Date.now() - startTime,
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error occurred'
+      error: isSizeError 
+        ? 'Image too large for Amazon Rekognition (max 5MB). Google Vision will still analyze the image.'
+        : errorMessage
     };
   }
 }
