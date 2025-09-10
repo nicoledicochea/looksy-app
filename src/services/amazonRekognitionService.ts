@@ -149,10 +149,17 @@ export async function analyzeWithAmazonRekognition(imageUri: string): Promise<AI
     // Convert image to base64
     const base64Image = await imageUriToBase64(imageUri);
     
+    // Convert base64 string to Uint8Array for AWS SDK
+    const binaryString = atob(base64Image);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    
     // Prepare API request
     const params = {
       Image: {
-        Bytes: Buffer.from(base64Image, 'base64')
+        Bytes: bytes
       },
       MaxLabels: 10,
       MinConfidence: 60
