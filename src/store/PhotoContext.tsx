@@ -47,10 +47,13 @@ export function PhotoProvider({ children }: { children: ReactNode }) {
   };
 
   const addPhoto = async (uri: string) => {
+    // Generate a more robust unique ID with better collision resistance
+    const timestamp = Date.now();
+    const randomId = Math.random().toString(36).substr(2, 9);
     const newPhoto: Photo = {
-      id: `photo_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: `photo_${timestamp}_${randomId}`,
       uri,
-      timestamp: new Date(),
+      timestamp: new Date(timestamp),
       isAnalyzing: false,
     };
     
@@ -116,8 +119,24 @@ export function PhotoProvider({ children }: { children: ReactNode }) {
         aiAnalysis: combinedResult
       };
 
-      // Update in storage first
-      await storageService.updatePhoto(photoId, updatedPhoto);
+      // Update in storage first with retry logic
+      let retryCount = 0;
+      const maxRetries = 3;
+      
+      while (retryCount < maxRetries) {
+        try {
+          await storageService.updatePhoto(photoId, updatedPhoto);
+          break; // Success, exit retry loop
+        } catch (error) {
+          retryCount++;
+          if (retryCount >= maxRetries) {
+            throw error; // Re-throw if all retries failed
+          }
+          console.warn(`Storage update failed, retry ${retryCount}/${maxRetries}:`, error);
+          // Wait a bit before retrying
+          await new Promise(resolve => setTimeout(resolve, 100 * retryCount));
+        }
+      }
       
       // Then update local state
       setPhotos(prev => prev.map(p => 

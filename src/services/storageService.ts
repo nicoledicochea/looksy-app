@@ -62,6 +62,7 @@ export interface StorageData {
 class StorageService {
   private static instance: StorageService;
   private isInitialized = false;
+  private operationQueue: Promise<any> = Promise.resolve();
 
   private constructor() {}
 
@@ -170,9 +171,25 @@ class StorageService {
   }
 
   /**
-   * Save all app data to storage
+   * Queue storage operations to prevent race conditions
    */
-  async saveAllData(data: StorageData): Promise<void> {
+  private async queueOperation<T>(operation: () => Promise<T>): Promise<T> {
+    this.operationQueue = this.operationQueue.then(async () => {
+      try {
+        return await operation();
+      } catch (error) {
+        // Don't let one failed operation break the queue
+        console.error('Storage operation failed:', error);
+        throw error;
+      }
+    });
+    return this.operationQueue;
+  }
+
+  /**
+   * Save all app data to storage (internal method without queuing)
+   */
+  private async saveAllDataInternal(data: StorageData): Promise<void> {
     try {
       const serializedData = JSON.stringify(data, this.dateReplacer);
       await AsyncStorage.setItem(STORAGE_KEYS.PHOTOS, serializedData);
@@ -185,9 +202,18 @@ class StorageService {
   }
 
   /**
-   * Load all app data from storage
+   * Save all app data to storage
    */
-  async loadAllData(): Promise<StorageData> {
+  async saveAllData(data: StorageData): Promise<void> {
+    return this.queueOperation(async () => {
+      return await this.saveAllDataInternal(data);
+    });
+  }
+
+  /**
+   * Load all app data from storage (internal method without queuing)
+   */
+  private async loadAllDataInternal(): Promise<StorageData> {
     try {
       const serializedData = await AsyncStorage.getItem(STORAGE_KEYS.PHOTOS);
       
@@ -219,7 +245,7 @@ class StorageService {
       console.error('Failed to load all data:', error);
       // If loading fails completely, clear storage and return default
       try {
-        await this.clearAllData();
+        await this.clearAllDataInternal();
       } catch (clearError) {
         console.error('Failed to clear corrupted data:', clearError);
       }
@@ -243,19 +269,30 @@ class StorageService {
   }
 
   /**
+   * Load all app data from storage
+   */
+  async loadAllData(): Promise<StorageData> {
+    return this.queueOperation(async () => {
+      return await this.loadAllDataInternal();
+    });
+  }
+
+  /**
    * Save photos array to storage
    */
   async savePhotos(photos: Photo[]): Promise<void> {
-    try {
-      const data = await this.loadAllData();
-      data.photos = photos;
-      data.lastSaved = new Date();
-      await this.saveAllData(data);
-      console.log(`Saved ${photos.length} photos to storage`);
-    } catch (error) {
-      console.error('Failed to save photos:', error);
-      throw error;
-    }
+    return this.queueOperation(async () => {
+      try {
+        const data = await this.loadAllDataInternal();
+        data.photos = photos;
+        data.lastSaved = new Date();
+        await this.saveAllDataInternal(data);
+        console.log(`Saved ${photos.length} photos to storage`);
+      } catch (error) {
+        console.error('Failed to save photos:', error);
+        throw error;
+      }
+    });
   }
 
   /**
@@ -317,61 +354,67 @@ class StorageService {
    * Add a single photo to storage
    */
   async addPhoto(photo: Photo): Promise<void> {
-    try {
-      const data = await this.loadAllData();
-      data.photos.unshift(photo); // Add to beginning of array
-      data.lastSaved = new Date();
-      await this.saveAllData(data);
-      console.log(`Added photo ${photo.id} to storage`);
-    } catch (error) {
-      console.error('Failed to add photo:', error);
-      throw error;
-    }
+    return this.queueOperation(async () => {
+      try {
+        const data = await this.loadAllDataInternal();
+        data.photos.unshift(photo); // Add to beginning of array
+        data.lastSaved = new Date();
+        await this.saveAllDataInternal(data);
+        console.log(`Added photo ${photo.id} to storage`);
+      } catch (error) {
+        console.error('Failed to add photo:', error);
+        throw error;
+      }
+    });
   }
 
   /**
    * Update a photo in storage
    */
   async updatePhoto(photoId: string, updates: Partial<Photo>): Promise<void> {
-    try {
-      const data = await this.loadAllData();
-      const photoIndex = data.photos.findIndex(p => p.id === photoId);
-      
-      if (photoIndex === -1) {
-        console.error(`Photo with id ${photoId} not found. Available photos:`, data.photos.map(p => p.id));
-        throw new Error(`Photo with id ${photoId} not found`);
-      }
+    return this.queueOperation(async () => {
+      try {
+        const data = await this.loadAllDataInternal();
+        const photoIndex = data.photos.findIndex(p => p.id === photoId);
+        
+        if (photoIndex === -1) {
+          console.error(`Photo with id ${photoId} not found. Available photos:`, data.photos.map(p => p.id));
+          throw new Error(`Photo with id ${photoId} not found`);
+        }
 
-      data.photos[photoIndex] = { ...data.photos[photoIndex], ...updates };
-      data.lastSaved = new Date();
-      await this.saveAllData(data);
-      console.log(`Updated photo ${photoId} in storage`);
-    } catch (error) {
-      console.error('Failed to update photo:', error);
-      throw error;
-    }
+        data.photos[photoIndex] = { ...data.photos[photoIndex], ...updates };
+        data.lastSaved = new Date();
+        await this.saveAllDataInternal(data);
+        console.log(`Updated photo ${photoId} in storage`);
+      } catch (error) {
+        console.error('Failed to update photo:', error);
+        throw error;
+      }
+    });
   }
 
   /**
    * Remove a photo from storage
    */
   async removePhoto(photoId: string): Promise<void> {
-    try {
-      const data = await this.loadAllData();
-      data.photos = data.photos.filter(p => p.id !== photoId);
-      data.lastSaved = new Date();
-      await this.saveAllData(data);
-      console.log(`Removed photo ${photoId} from storage`);
-    } catch (error) {
-      console.error('Failed to remove photo:', error);
-      throw error;
-    }
+    return this.queueOperation(async () => {
+      try {
+        const data = await this.loadAllDataInternal();
+        data.photos = data.photos.filter(p => p.id !== photoId);
+        data.lastSaved = new Date();
+        await this.saveAllDataInternal(data);
+        console.log(`Removed photo ${photoId} from storage`);
+      } catch (error) {
+        console.error('Failed to remove photo:', error);
+        throw error;
+      }
+    });
   }
 
   /**
-   * Clear all stored data
+   * Clear all stored data (internal method without queuing)
    */
-  async clearAllData(): Promise<void> {
+  private async clearAllDataInternal(): Promise<void> {
     try {
       await AsyncStorage.multiRemove([
         STORAGE_KEYS.PHOTOS,
@@ -383,6 +426,15 @@ class StorageService {
       console.error('Failed to clear all data:', error);
       throw error;
     }
+  }
+
+  /**
+   * Clear all stored data
+   */
+  async clearAllData(): Promise<void> {
+    return this.queueOperation(async () => {
+      return await this.clearAllDataInternal();
+    });
   }
 
   /**
