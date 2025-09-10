@@ -86,29 +86,34 @@ export function PhotoProvider({ children }: { children: ReactNode }) {
     ));
 
     try {
-      const { analyzeImage, analyzeImageMock } = await import('../services/realAiService');
+      const { analyzePhotoWithMultipleAPIs, combineApiResults } = await import('../services/parallelApiExecution');
       const photo = photos.find(p => p.id === photoId);
       if (!photo) {
         console.error(`Photo ${photoId} not found in context`);
         return;
       }
 
-      // Try real API first, fallback to mock if it fails
-      let result;
-      try {
-        result = await analyzeImage(photo.uri);
-      } catch (error) {
-        console.log('Real API failed, using mock:', error);
-        result = await analyzeImageMock(photo.uri);
+      // Use parallel API execution
+      const parallelResult = await analyzePhotoWithMultipleAPIs(photo.uri);
+      
+      if (!parallelResult.success) {
+        throw new Error(parallelResult.error || 'Parallel API analysis failed');
       }
+
+      // Combine results from both APIs
+      const combinedResult = combineApiResults(
+        parallelResult.googleVisionResults,
+        parallelResult.amazonRekognitionResults
+      );
       
       const updatedPhoto = {
         ...photo,
         isAnalyzing: false,
-        aiAnalysis: {
-          ...result,
-          analyzedAt: new Date(),
-        }
+        // Store individual API results
+        googleVisionResults: parallelResult.googleVisionResults,
+        amazonRekognitionResults: parallelResult.amazonRekognitionResults,
+        // Store combined result for backward compatibility
+        aiAnalysis: combinedResult
       };
 
       // Update in storage first
@@ -119,9 +124,9 @@ export function PhotoProvider({ children }: { children: ReactNode }) {
         p.id === photoId ? updatedPhoto : p
       ));
       
-      console.log(`Updated AI analysis for photo ${photoId} in storage`);
+      console.log(`Updated parallel AI analysis for photo ${photoId} in storage`);
     } catch (error) {
-      console.error('AI analysis failed:', error);
+      console.error('Parallel AI analysis failed:', error);
       setPhotos(prev => prev.map(photo => 
         photo.id === photoId ? { ...photo, isAnalyzing: false } : photo
       ));

@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView } from 'rea
 import { useFocusEffect } from '@react-navigation/native';
 import { usePhotos } from '../store/PhotoContext';
 import { storageService } from '../services/storageService';
+import { getUsageStats, UsageStats } from '../services/usageTracking';
 
 interface StorageStats {
   totalPhotos: number;
@@ -14,10 +15,12 @@ interface StorageStats {
 export default function SettingsScreen() {
   const { clearAllPhotos, photos } = usePhotos();
   const [storageStats, setStorageStats] = useState<StorageStats | null>(null);
+  const [usageStats, setUsageStats] = useState<UsageStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     loadStorageStats();
+    loadUsageStats();
   }, []);
 
   // Refresh stats when photos change
@@ -64,6 +67,21 @@ export default function SettingsScreen() {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadUsageStats = async () => {
+    try {
+      const stats = await getUsageStats();
+      setUsageStats(stats);
+    } catch (error) {
+      console.error('Failed to load usage stats:', error);
+      setUsageStats({
+        googleVision: 0,
+        amazonRekognition: 0,
+        openai: 0,
+        total: 0,
+      });
     }
   };
 
@@ -157,6 +175,32 @@ export default function SettingsScreen() {
         </View>
 
         <View style={styles.section}>
+          <Text style={styles.sectionTitle}>API Usage</Text>
+          {usageStats ? (
+            <View style={styles.statsContainer}>
+              <View style={styles.statRow}>
+                <Text style={styles.statLabel}>Google Vision:</Text>
+                <Text style={styles.statValue}>{usageStats.googleVision} / 1000</Text>
+              </View>
+              <View style={styles.statRow}>
+                <Text style={styles.statLabel}>Amazon Rekognition:</Text>
+                <Text style={styles.statValue}>{usageStats.amazonRekognition} / 1000</Text>
+              </View>
+              <View style={styles.statRow}>
+                <Text style={styles.statLabel}>OpenAI:</Text>
+                <Text style={styles.statValue}>{usageStats.openai} / 1000</Text>
+              </View>
+              <View style={[styles.statRow, styles.totalRow]}>
+                <Text style={styles.statLabel}>Total API Calls:</Text>
+                <Text style={styles.statValue}>{usageStats.total}</Text>
+              </View>
+            </View>
+          ) : (
+            <Text style={styles.loadingText}>Loading usage statistics...</Text>
+          )}
+        </View>
+
+        <View style={styles.section}>
           <Text style={styles.sectionTitle}>Data Management</Text>
           <TouchableOpacity style={styles.dangerButton} onPress={handleClearAllData}>
             <Text style={styles.dangerButtonText}>Clear All Data</Text>
@@ -231,6 +275,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
     color: '#333',
+  },
+  totalRow: {
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+    marginTop: 8,
+    paddingTop: 8,
   },
   loadingText: {
     fontSize: 16,

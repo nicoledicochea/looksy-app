@@ -89,7 +89,7 @@ export default function PhotoItem({ photo, onDelete, onAnalyze, onEstimatePrice 
       {photo.isAnalyzing && (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="small" color="#007AFF" />
-          <Text style={styles.loadingText}>Analyzing image...</Text>
+          <Text style={styles.loadingText}>Analyzing with dual AI services...</Text>
         </View>
       )}
 
@@ -111,7 +111,7 @@ export default function PhotoItem({ photo, onDelete, onAnalyze, onEstimatePrice 
               onPress={() => onAnalyze(photo.id)}
             >
               <Text style={photo.aiAnalysis ? styles.reanalyzeText : styles.analyzeText}>
-                {photo.aiAnalysis ? '🔄 Re-analyze' : '🤖 Analyze'}
+                {photo.aiAnalysis ? '🔄 Re-analyze' : '🤖 Dual AI Analyze'}
               </Text>
             </TouchableOpacity>
           )}

@@ -10,13 +10,26 @@ const STORAGE_KEYS = {
 } as const;
 
 // Current app version for data migration
-const CURRENT_APP_VERSION = '1.0.0';
+const CURRENT_APP_VERSION = '1.1.0';
 
 export interface Photo {
   id: string;
   uri: string;
   timestamp: Date;
   aiAnalysis?: {
+    items: DetectedItem[];
+    processingTime: number;
+    success: boolean;
+    analyzedAt: Date;
+  };
+  // Separate API results for multi-API ensemble analysis
+  googleVisionResults?: {
+    items: DetectedItem[];
+    processingTime: number;
+    success: boolean;
+    analyzedAt: Date;
+  };
+  amazonRekognitionResults?: {
     items: DetectedItem[];
     processingTime: number;
     success: boolean;
@@ -32,6 +45,11 @@ export interface AppSettings {
   autoAnalyze: boolean;
   priceEstimationEnabled: boolean;
   lastSyncDate?: Date;
+  usageLimits?: {
+    googleVision: number;
+    amazonRekognition: number;
+    openai: number;
+  };
 }
 
 export interface StorageData {
@@ -90,6 +108,11 @@ class StorageService {
         defaultCategory: 'general',
         autoAnalyze: true,
         priceEstimationEnabled: true,
+        usageLimits: {
+          googleVision: 1000,
+          amazonRekognition: 1000,
+          openai: 1000,
+        },
       },
       version: CURRENT_APP_VERSION,
       lastSaved: new Date(),
@@ -107,8 +130,12 @@ class StorageService {
     try {
       const existingData = await this.loadAllData();
       
-      // Add migration logic here for future versions
-      // For now, just update the version
+      // Migration from 1.0.0 to 1.1.0
+      if (fromVersion === '1.0.0' && toVersion === '1.1.0') {
+        await this.migrateToV1_1_0(existingData);
+      }
+      
+      // Update version and save
       existingData.version = toVersion;
       existingData.lastSaved = new Date();
       
@@ -119,6 +146,27 @@ class StorageService {
       // If migration fails, reset to initial state
       await this.setupInitialData();
     }
+  }
+
+  /**
+   * Migration logic for version 1.1.0
+   */
+  private async migrateToV1_1_0(data: StorageData): Promise<void> {
+    console.log('Applying migration to version 1.1.0');
+    
+    // Add usageLimits to settings if not present
+    if (!data.settings.usageLimits) {
+      data.settings.usageLimits = {
+        googleVision: 1000,
+        amazonRekognition: 1000,
+        openai: 1000,
+      };
+      console.log('Added usageLimits to settings');
+    }
+    
+    // Photos already have the new interface structure
+    // No migration needed for photos as the new fields are optional
+    console.log('Photo interface migration completed');
   }
 
   /**
@@ -151,6 +199,11 @@ class StorageService {
             defaultCategory: 'general',
             autoAnalyze: true,
             priceEstimationEnabled: true,
+            usageLimits: {
+              googleVision: 1000,
+              amazonRekognition: 1000,
+              openai: 1000,
+            },
           },
           version: CURRENT_APP_VERSION,
           lastSaved: new Date(),
@@ -177,6 +230,11 @@ class StorageService {
           defaultCategory: 'general',
           autoAnalyze: true,
           priceEstimationEnabled: true,
+          usageLimits: {
+            googleVision: 1000,
+            amazonRekognition: 1000,
+            openai: 1000,
+          },
         },
         version: CURRENT_APP_VERSION,
         lastSaved: new Date(),
@@ -239,6 +297,11 @@ class StorageService {
         defaultCategory: 'general',
         autoAnalyze: true,
         priceEstimationEnabled: true,
+        usageLimits: {
+          googleVision: 1000,
+          amazonRekognition: 1000,
+          openai: 1000,
+        },
       };
     } catch (error) {
       console.error('Failed to load settings:', error);
@@ -375,10 +438,24 @@ class StorageService {
           autoAnalyze: typeof data.settings.autoAnalyze === 'boolean' ? data.settings.autoAnalyze : true,
           priceEstimationEnabled: typeof data.settings.priceEstimationEnabled === 'boolean' ? data.settings.priceEstimationEnabled : true,
           lastSyncDate: data.settings.lastSyncDate instanceof Date && !isNaN(data.settings.lastSyncDate.getTime()) ? data.settings.lastSyncDate : undefined,
+          usageLimits: data.settings.usageLimits && typeof data.settings.usageLimits === 'object' ? {
+            googleVision: typeof data.settings.usageLimits.googleVision === 'number' ? data.settings.usageLimits.googleVision : 1000,
+            amazonRekognition: typeof data.settings.usageLimits.amazonRekognition === 'number' ? data.settings.usageLimits.amazonRekognition : 1000,
+            openai: typeof data.settings.usageLimits.openai === 'number' ? data.settings.usageLimits.openai : 1000,
+          } : {
+            googleVision: 1000,
+            amazonRekognition: 1000,
+            openai: 1000,
+          },
         } : {
           defaultCategory: 'general',
           autoAnalyze: true,
           priceEstimationEnabled: true,
+          usageLimits: {
+            googleVision: 1000,
+            amazonRekognition: 1000,
+            openai: 1000,
+          },
         },
         version: typeof data.version === 'string' ? data.version : CURRENT_APP_VERSION,
         lastSaved: data.lastSaved instanceof Date && !isNaN(data.lastSaved.getTime()) ? data.lastSaved : new Date(),
@@ -393,6 +470,11 @@ class StorageService {
           defaultCategory: 'general',
           autoAnalyze: true,
           priceEstimationEnabled: true,
+          usageLimits: {
+            googleVision: 1000,
+            amazonRekognition: 1000,
+            openai: 1000,
+          },
         },
         version: CURRENT_APP_VERSION,
         lastSaved: new Date(),
