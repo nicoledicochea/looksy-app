@@ -1,0 +1,70 @@
+---
+description: Product Planning Rules for Cursor
+globs: alwaysApply: false
+version: 1.0
+encoding: UTF-8
+---
+
+# Plan Product Rules
+
+## Overview
+Generate product documentation for a new project based on a user's idea, using structured templates and a user-approval process.
+
+## Process Flow
+
+### Step 1: Gather User Input
+
+**Step 1: Gather User Input**
+Collect essential project details from the user.
+
+**Data Sources:**
+- Primary: user_direct_input
+
+**Required Fields:**
+- Main idea
+- Key features
+- Target users
+- Tech stack preferences
+
+**Instructions:**
+- ACTION: Ask the user for project details.
+- VALIDATE: Ensure all required fields are provided.
+
+### Step 2: Create Product Documentation
+
+**Step 2: Create Product Documentation**
+Create the project's foundational documents using structured templates.
+
+**File Templates:**
+
+**mission.md:**
+- Mission Statement
+- User Stories
+- Pitches (Short and Long)
+
+**roadmap.md:**
+- Phase 1: MVP
+- Phase 2: Core Features
+- Phase 3: Scale
+
+**Instructions:**
+- ACTION: Create files docs/mission.md and docs/roadmap.md. Create the docs folder if it doesn't exist.
+- POPULATE: The files with information gathered from the user.
+
+### Step 3: User Approval
+
+**Step 3: User Approval**
+Request user review and approval of the generated plan.
+
+**Review Request:**
+```
+I've created the product documentation based on your idea. Please review the following files:
+
+docs/mission.md
+docs/roadmap.md
+```
+
+**Instructions:**
+- ACTION: Present the files and wait for user's explicit approval.
+- LOOP: IF user requests changes, repeat steps 1-3.
+- COMPLETE: Rule is complete only upon explicit user approval.

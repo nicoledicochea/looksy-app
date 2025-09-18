@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DetectedItem } from './aiService';
 import { PriceEstimate } from './ebayService';
+import { SummarizedResult } from './aiSummarizationService';
 
 // Storage keys
 const STORAGE_KEYS = {
@@ -21,6 +22,7 @@ export interface Photo {
     processingTime: number;
     success: boolean;
     analyzedAt: Date;
+    reasoning?: string;
   };
   // Separate API results for multi-API ensemble analysis
   googleVisionResults?: {
@@ -35,9 +37,14 @@ export interface Photo {
     success: boolean;
     analyzedAt: Date;
   };
+  // AI summarized result for single meaningful description
+  summarizedResult?: SummarizedResult;
   priceEstimate?: PriceEstimate;
   isAnalyzing?: boolean;
   isEstimatingPrice?: boolean;
+  // Interactive item selection properties
+  selectedItemIds?: string[];  // Array of selected item IDs for interactive selection
+  boundingBoxes?: DetectedItem[]; // Visual overlay data for interactive photo viewer
 }
 
 export interface AppSettings {
@@ -576,6 +583,27 @@ class StorageService {
     }
     
     return value;
+  }
+
+  /**
+   * Update selected items for a photo
+   */
+  async updateSelectedItems(photoId: string, selectedItemIds: string[]): Promise<void> {
+    return this.updatePhoto(photoId, { selectedItemIds });
+  }
+
+  /**
+   * Clear selected items for a photo
+   */
+  async clearSelectedItems(photoId: string): Promise<void> {
+    return this.updatePhoto(photoId, { selectedItemIds: [] });
+  }
+
+  /**
+   * Update bounding boxes for a photo
+   */
+  async updateBoundingBoxes(photoId: string, boundingBoxes: DetectedItem[]): Promise<void> {
+    return this.updatePhoto(photoId, { boundingBoxes });
   }
 }
 

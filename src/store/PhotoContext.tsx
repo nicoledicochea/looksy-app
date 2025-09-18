@@ -103,11 +103,38 @@ export function PhotoProvider({ children }: { children: ReactNode }) {
         throw new Error(parallelResult.error || 'Parallel API analysis failed');
       }
 
-      // Combine results from both APIs
-      const combinedResult = combineApiResults(
-        parallelResult.googleVisionResults,
-        parallelResult.amazonRekognitionResults
-      );
+      // Use summarized result if available, otherwise combine results from both APIs
+      let aiAnalysis;
+      if (parallelResult.summarizedResult) {
+        // Create a single item from the summarized result
+        aiAnalysis = {
+          items: [{
+            id: `summarized_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            name: parallelResult.summarizedResult.name,
+            confidence: parallelResult.summarizedResult.confidence,
+            category: 'AI Analyzed',
+            description: parallelResult.summarizedResult.description,
+            boundingBox: {
+              x: 0.1,
+              y: 0.1,
+              width: 0.8,
+              height: 0.8,
+            },
+            precisionLevel: 'high' as const,
+            source: 'fallback' as const,
+          }],
+          processingTime: parallelResult.totalProcessingTime,
+          success: true,
+          analyzedAt: new Date(),
+          reasoning: parallelResult.summarizedResult.reasoning
+        };
+      } else {
+        // Fallback to combined results
+        aiAnalysis = combineApiResults(
+          parallelResult.googleVisionResults,
+          parallelResult.amazonRekognitionResults
+        );
+      }
       
       const updatedPhoto = {
         ...photo,
@@ -115,8 +142,10 @@ export function PhotoProvider({ children }: { children: ReactNode }) {
         // Store individual API results
         googleVisionResults: parallelResult.googleVisionResults,
         amazonRekognitionResults: parallelResult.amazonRekognitionResults,
-        // Store combined result for backward compatibility
-        aiAnalysis: combinedResult
+        // Store summarized result
+        summarizedResult: parallelResult.summarizedResult,
+        // Store AI analysis (summarized or combined)
+        aiAnalysis
       };
 
       // Update in storage first with retry logic

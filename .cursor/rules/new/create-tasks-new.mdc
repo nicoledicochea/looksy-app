@@ -1,0 +1,68 @@
+---
+description: Create a tasks list from an approved feature spec
+globs: alwaysApply: false
+version: 1.0
+encoding: UTF-8
+---
+
+# Create Tasks Rules
+
+## Overview
+Transform an approved product plan into a detailed, hierarchical checklist of engineering tasks that strictly follows a Test-Driven Development (TDD) workflow.
+
+## Process Flow
+
+### Step 1: Create Tasks File
+
+**Step 1: Create Tasks File**
+Use the file-creator subagent to create the tasks.md file in the project's documentation folder.
+
+**File Template:**
+```markdown
+# Spec Tasks
+
+## Structure
+- Major tasks: numbered checklist (e.g., 1., 2.)
+- Subtasks: decimal notation (e.g., 1.1, 1.2)
+```
+
+**Instructions:**
+- ACTION: Create file docs/tasks.md. Create the docs folder if it doesn't exist.
+
+### Step 2: Populate Tasks List
+
+**Step 2: Populate Tasks List**
+Break down the approved features into a detailed task checklist.
+
+**Task Template:**
+```markdown
+## Tasks
+[ ] 1. [MAJOR_TASK_DESCRIPTION]
+
+[ ] 1.1 Write tests for [COMPONENT] (This test MUST fail initially)
+
+[ ] 1.2 [IMPLEMENTATION_STEP]
+
+[ ] 1.3 [IMPLEMENTATION_STEP]
+
+[ ] 1.4 Verify all tests pass
+```
+
+**Instructions:**
+- ACTION: Populate the tasks.md file.
+- ENFORCE: The TDD workflow by always including a "failing test" sub-task first.
+
+### Step 3: Readiness Check
+
+**Step 3: Readiness Check**
+Present the tasks list to the user and get confirmation to proceed with execution.
+
+**Prompt:**
+```
+"I have created the detailed task list in docs/tasks.md. Would you like me to proceed with the first task?"
+```
+
+**Instructions:**
+- ACTION: Wait for user confirmation.
+- IF user_confirms: PROCEED to the execute rule.
+- ELSE: AWAIT clarification or modifications.

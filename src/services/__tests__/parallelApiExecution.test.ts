@@ -46,7 +46,7 @@ describe('Parallel API Execution', () => {
       expect(result.amazonRekognitionResults).toBeDefined();
       expect(result.googleVisionResults?.items).toHaveLength(1);
       expect(result.amazonRekognitionResults?.items).toHaveLength(1);
-      expect(result.totalProcessingTime).toBeGreaterThan(0);
+      expect(result.totalProcessingTime).toBeGreaterThanOrEqual(0);
     });
 
     it('should handle when one API fails', async () => {

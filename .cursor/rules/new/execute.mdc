@@ -1,0 +1,53 @@
+---
+description: Rules to initiate execution of a set of tasks
+globs: alwaysApply: false
+version: 1.0
+encoding: UTF-8
+---
+
+# Execute Tasks Rules
+
+## Overview
+Execute a specific task from the tasks.md checklist by following a systematic, three-phase TDD workflow.
+
+## Process Flow
+
+### Phase 1: Pre-Execution Setup
+
+#### Step 1: Task Assignment
+
+**Step 1: Task Assignment**
+Identify the task to be executed and gather necessary context.
+
+**Instructions:**
+- ACTION: Identify task to execute, either explicitly specified by the user or the next uncompleted task.
+- GATHER: Read all relevant context from docs folder files (docs/mission.md, docs/roadmap.md, docs/tasks.md).
+
+### Phase 2: Execution Loop
+
+#### Step 2: Task Execution
+
+**Step 2: Task Execution**
+Execute each sub-task in a strict, sequential loop.
+
+**Instructions:**
+- ACTION: Process each sub-task one by one.
+- CRITICAL: The agent MUST write the test code and confirm it fails before any implementation.
+- IMPLEMENT: Write only the necessary code to make the test pass.
+- REFINE: Refactor code to improve its quality while ensuring all tests stay green.
+- UPDATE: Mark the current sub-task as complete in tasks.md upon success.
+- REPEAT: Continue this loop until all sub-tasks for the current task are complete.
+
+### Phase 3: Post-Execution Tasks
+
+#### Step 3: Finalize and Report
+
+**Step 3: Finalize and Report**
+Execute all post-completion steps to finalize the task.
+
+**Instructions:**
+- CRITICAL: This phase MUST be executed after the Execution Loop is complete.
+- RUN: The full project test suite.
+- UPDATE: The docs/roadmap.md file to reflect the completed feature.
+- MARK: The parent task as complete in docs/tasks.md.
+- GENERATE: A final recap document summarizing the work.
