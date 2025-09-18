@@ -7,11 +7,11 @@ export interface DetectedItem {
   confidence: number;
   category: string;
   description: string;
-  boundingBox?: {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
+  boundingBox: {
+    x: number;        // X coordinate (0-1 normalized)
+    y: number;        // Y coordinate (0-1 normalized)
+    width: number;    // Width (0-1 normalized)
+    height: number;   // Height (0-1 normalized)
   };
 }
 
@@ -343,7 +343,27 @@ function createItemDescription(labels: any[], itemName: string): string {
 // Convert image URI to base64 for API
 async function imageUriToBase64(uri: string): Promise<string> {
   try {
-    const response = await fetch(uri);
+    // For React Native, we need to handle local files differently
+    let imageUri = uri;
+    
+    // Convert file:// URI to a format that works with React Native fetch
+    if (uri.startsWith('file://')) {
+      // Remove file:// prefix and use the local path
+      imageUri = uri.replace('file://', '');
+    }
+    
+    // Use React Native's fetch with proper configuration
+    const response = await fetch(imageUri, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/octet-stream',
+      },
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch image: ${response.status}`);
+    }
+    
     const blob = await response.blob();
     
     return new Promise((resolve, reject) => {
@@ -358,6 +378,7 @@ async function imageUriToBase64(uri: string): Promise<string> {
       reader.readAsDataURL(blob);
     });
   } catch (error) {
+    console.error('Error in imageUriToBase64:', error);
     throw new Error('Failed to convert image to base64');
   }
 }
@@ -369,7 +390,8 @@ export async function analyzeImage(imageUri: string): Promise<AIAnalysisResult> 
   try {
     // Check if API key is configured
     if (!GOOGLE_CLOUD_CONFIG.apiKey || GOOGLE_CLOUD_CONFIG.apiKey === 'your-api-key') {
-      throw new Error('Google Cloud Vision API key not configured. Please set EXPO_PUBLIC_GOOGLE_CLOUD_API_KEY in your .env file.');
+      console.log('Google Cloud Vision API key not configured, falling back to mock data');
+      return await analyzeImageMock(imageUri);
     }
 
     // Convert image to base64
@@ -423,7 +445,7 @@ export async function analyzeImage(imageUri: string): Promise<AIAnalysisResult> 
     // Filter and process labels to create meaningful items
     const highConfidenceLabels = labels.filter((label: any) => label.score > 0.6);
     
-    if (highConfidenceLabels.length === 0) {
+    if (highConfidenceLabels.length === 0 && objects.length === 0) {
       return {
         items: [],
         processingTime,
@@ -432,18 +454,68 @@ export async function analyzeImage(imageUri: string): Promise<AIAnalysisResult> 
       };
     }
 
-    // Create a single, well-described item from the labels
-    const itemName = createItemName(highConfidenceLabels);
-    const itemDescription = createItemDescription(highConfidenceLabels, itemName);
-    const itemCategory = categorizeItem(itemName);
+    // Process objects with bounding boxes first (preferred)
+    let detectedItems: DetectedItem[] = [];
     
-    const detectedItems: DetectedItem[] = [{
-      id: `real_item_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      name: itemName,
-      confidence: Math.max(...highConfidenceLabels.map((l: any) => l.score)),
-      category: itemCategory,
-      description: itemDescription,
-    }];
+    if (objects.length > 0) {
+      // Use localized objects with bounding boxes
+      detectedItems = objects
+        .filter((obj: any) => obj.score > 0.6)
+        .map((obj: any) => {
+          const boundingPoly = obj.boundingPoly?.normalizedVertices || [];
+          let boundingBox = {
+            x: 0,
+            y: 0,
+            width: 0,
+            height: 0,
+          };
+          
+          if (boundingPoly.length >= 4) {
+            // Calculate bounding box from vertices
+            const xs = boundingPoly.map((v: any) => v.x || 0);
+            const ys = boundingPoly.map((v: any) => v.y || 0);
+            const minX = Math.min(...xs);
+            const maxX = Math.max(...xs);
+            const minY = Math.min(...ys);
+            const maxY = Math.max(...ys);
+            
+            boundingBox = {
+              x: minX,
+              y: minY,
+              width: maxX - minX,
+              height: maxY - minY,
+            };
+          }
+          
+          return {
+            id: `real_object_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            name: obj.name || 'Unknown Object',
+            confidence: obj.score,
+            category: categorizeItem(obj.name || 'Unknown'),
+            description: `${obj.name || 'Unknown object'} detected with ${Math.round(obj.score * 100)}% confidence`,
+            boundingBox,
+          };
+        });
+    } else {
+      // Fallback to labels without bounding boxes
+      const itemName = createItemName(highConfidenceLabels);
+      const itemDescription = createItemDescription(highConfidenceLabels, itemName);
+      const itemCategory = categorizeItem(itemName);
+      
+      detectedItems = [{
+        id: `real_item_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        name: itemName,
+        confidence: Math.max(...highConfidenceLabels.map((l: any) => l.score)),
+        category: itemCategory,
+        description: itemDescription,
+        boundingBox: {
+          x: 0.1,
+          y: 0.1,
+          width: 0.8,
+          height: 0.8,
+        },
+      }];
+    }
 
     return {
       items: detectedItems,
@@ -487,6 +559,12 @@ export async function analyzeImageMock(imageUri: string): Promise<AIAnalysisResu
       confidence: Math.random() * 0.3 + 0.7,
       category: item.category,
       description: item.description,
+      boundingBox: {
+        x: Math.random() * 0.7, // Random x position (0-0.7 to leave room for width)
+        y: Math.random() * 0.7, // Random y position (0-0.7 to leave room for height)
+        width: Math.random() * 0.3 + 0.1, // Random width (0.1-0.4)
+        height: Math.random() * 0.3 + 0.1, // Random height (0.1-0.4)
+      },
     }));
 
   return {

@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
-import { Photo } from '../../store/PhotoContext';
+import { Photo } from '../../services/storageService';
 import { getCategoryEmoji } from '../../services/realAiService';
 
 interface PhotoItemProps {

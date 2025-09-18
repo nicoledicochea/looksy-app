@@ -8,4 +8,6 @@ module.exports = {
     '!src/**/*.d.ts',
   ],
   setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts'],
+  // Handle AWS SDK v2 open handles gracefully
+  detectOpenHandles: true,
 };

@@ -19,7 +19,27 @@ export interface AIAnalysisResult {
 // Convert image URI to base64 for Amazon Rekognition API
 async function imageUriToBase64(uri: string): Promise<string> {
   try {
-    const response = await fetch(uri);
+    // For React Native, we need to handle local files differently
+    let imageUri = uri;
+    
+    // Convert file:// URI to a format that works with React Native fetch
+    if (uri.startsWith('file://')) {
+      // Remove file:// prefix and use the local path
+      imageUri = uri.replace('file://', '');
+    }
+    
+    // Use React Native's fetch with proper configuration
+    const response = await fetch(imageUri, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/octet-stream',
+      },
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch image: ${response.status}`);
+    }
+    
     const blob = await response.blob();
     
     // Check if image is too large (>4MB to leave buffer for base64 encoding)
@@ -50,13 +70,37 @@ async function imageUriToBase64(uri: string): Promise<string> {
 
 // Transform Amazon Rekognition response to DetectedItem format
 export function transformRekognitionResponse(labels: any[]): DetectedItem[] {
-  return labels.map(label => ({
-    id: `amazon_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-    name: label.Name,
-    confidence: label.Confidence / 100, // Convert to 0-1 scale
-    category: categorizeItem(label.Name),
-    description: `${label.Name} detected with ${Math.round(label.Confidence)}% confidence`
-  }));
+  return labels.map(label => {
+    // Extract bounding box from instances if available
+    let boundingBox = {
+      x: 0.1,
+      y: 0.1,
+      width: 0.8,
+      height: 0.8,
+    };
+    
+    if (label.Instances && label.Instances.length > 0) {
+      // Use the first instance's bounding box
+      const instance = label.Instances[0];
+      if (instance.BoundingBox) {
+        boundingBox = {
+          x: instance.BoundingBox.Left,
+          y: instance.BoundingBox.Top,
+          width: instance.BoundingBox.Width,
+          height: instance.BoundingBox.Height,
+        };
+      }
+    }
+    
+    return {
+      id: `amazon_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      name: label.Name,
+      confidence: label.Confidence / 100, // Convert to 0-1 scale
+      category: categorizeItem(label.Name),
+      description: `${label.Name} detected with ${Math.round(label.Confidence)}% confidence`,
+      boundingBox,
+    };
+  });
 }
 
 // Categorize items based on Amazon Rekognition labels
@@ -153,7 +197,13 @@ export async function analyzeWithAmazonRekognition(imageUri: string): Promise<AI
     // Check if AWS credentials are configured
     if (!process.env.EXPO_PUBLIC_AWS_ACCESS_KEY_ID || 
         !process.env.EXPO_PUBLIC_AWS_SECRET_ACCESS_KEY) {
-      throw new Error('AWS credentials not configured. Please set EXPO_PUBLIC_AWS_ACCESS_KEY_ID and EXPO_PUBLIC_AWS_SECRET_ACCESS_KEY in your .env file.');
+      console.log('AWS credentials not configured, skipping Amazon Rekognition');
+      return {
+        items: [],
+        processingTime: Date.now() - startTime,
+        success: false,
+        error: 'AWS credentials not configured'
+      };
     }
 
     // Convert image to base64

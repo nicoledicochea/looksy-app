@@ -1,5 +1,5 @@
 // eBay API service for price estimation
-import { GOOGLE_CLOUD_API_KEY } from '../config/googleCloud';
+import { GOOGLE_CLOUD_CONFIG } from '../config/googleCloud';
 
 // eBay API configuration
 const EBAY_API_BASE_URL = 'https://api.ebay.com';

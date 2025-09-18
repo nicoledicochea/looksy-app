@@ -7,6 +7,12 @@ export interface DetectedItem {
   confidence: number;
   category: string;
   description: string;
+  boundingBox: {
+    x: number;        // X coordinate (0-1 normalized)
+    y: number;        // Y coordinate (0-1 normalized)
+    width: number;    // Width (0-1 normalized)
+    height: number;   // Height (0-1 normalized)
+  };
 }
 
 export interface AIAnalysisResult {
@@ -44,6 +50,12 @@ export async function analyzeImage(imageUri: string): Promise<AIAnalysisResult> 
       confidence: Math.random() * 0.3 + 0.7, // 70-100% confidence
       category: item.category,
       description: item.description,
+      boundingBox: {
+        x: Math.random() * 0.7, // Random x position (0-0.7 to leave room for width)
+        y: Math.random() * 0.7, // Random y position (0-0.7 to leave room for height)
+        width: Math.random() * 0.3 + 0.1, // Random width (0.1-0.4)
+        height: Math.random() * 0.3 + 0.1, // Random height (0.1-0.4)
+      },
     }));
 
   return {

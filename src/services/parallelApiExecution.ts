@@ -2,6 +2,7 @@ import { analyzeImage } from './realAiService';
 import { analyzeWithAmazonRekognition } from './amazonRekognitionService';
 import { checkUsageLimit, incrementUsage } from './usageTracking';
 import { DetectedItem } from './aiService';
+import { summarizeDetections, SummarizedResult } from './aiSummarizationService';
 
 export interface ParallelAnalysisResult {
   success: boolean;
@@ -19,6 +20,7 @@ export interface ParallelAnalysisResult {
     analyzedAt: Date;
     error?: string;
   };
+  summarizedResult?: SummarizedResult;
   totalProcessingTime: number;
   error?: string;
 }
@@ -109,10 +111,24 @@ export async function analyzePhotoWithMultipleAPIs(imageUri: string): Promise<Pa
       };
     }
 
+    // Perform AI summarization to create single meaningful description
+    let summarizedResult: SummarizedResult | undefined;
+    try {
+      const googleItems = googleVisionResults.success ? googleVisionResults.items : [];
+      const amazonItems = amazonRekognitionResults.success ? amazonRekognitionResults.items : [];
+      
+      summarizedResult = await summarizeDetections(googleItems, amazonItems);
+      console.log('AI summarization completed:', summarizedResult);
+    } catch (error) {
+      console.error('AI summarization failed:', error);
+      // Continue without summarization - the individual API results are still available
+    }
+
     return {
       success: true,
       googleVisionResults,
       amazonRekognitionResults,
+      summarizedResult,
       totalProcessingTime
     };
 

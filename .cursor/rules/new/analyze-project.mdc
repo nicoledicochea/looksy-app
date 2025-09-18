@@ -1,0 +1,81 @@
+---
+description: Analyze Current Product & Install Cursor
+globs: alwaysApply: false
+version: 1.0
+encoding: UTF-8
+---
+
+# Analyze Current Product & Install Cursor
+
+## Overview
+Analyze an existing codebase to generate a structured analysis.md file that provides a foundational understanding for the AI agent.
+
+## Process Flow
+
+### Step 1: Analyze Codebase
+
+**Step 1: Analyze Codebase**
+Thoroughly analyze the existing codebase to understand its current state.
+
+**Analysis Areas:**
+- **Project Structure**
+  - Directory organization
+  - File naming patterns
+  - Module structure
+  - Build configuration
+- **Technology Stack**
+  - Frameworks in use
+  - Dependencies (e.g., package.json, requirements.txt)
+  - Database systems
+  - Infrastructure configuration
+- **Implementation Progress**
+  - Completed features
+  - Work in progress
+  - API endpoints
+  - Database schema
+- **Code Patterns**
+  - Coding style in use
+  - Naming conventions
+  - Testing approach
+
+**Instructions:**
+- ACTION: Analyze the codebase and document findings.
+- OUTPUT: A summary of the codebase's technology, structure, and progress.
+
+### Step 2: Create Analysis File
+
+**Step 2: Create Analysis File**
+Create the analysis.md with a structured template.
+
+**File Template:**
+```markdown
+# Project Analysis
+
+## Project Overview
+## Tech Stack
+## Project Structure
+## Implementation Status
+## Code Style
+```
+
+**Instructions:**
+- ACTION: Create file docs/analysis.md. Create the docs folder if it doesn't exist.
+- POPULATE: The file with structured information from the analysis.
+
+### Step 3: User Confirmation
+
+**Step 3: User Confirmation**
+Present the generated documentation to the user and confirm completion.
+
+**Summary Template:**
+```
+✅ Analysis Complete
+I've analyzed your codebase and created documentation that reflects your current implementation.
+
+Next Steps:
+- Review the generated documentation in docs/analysis.md
+- Use the rules for plan-product or create-tasks to begin development.
+```
+
+**Instructions:**
+- ACTION: Await user confirmation before proceeding with other tasks.
