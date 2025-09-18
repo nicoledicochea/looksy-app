@@ -23,7 +23,9 @@ describe('DetectedItem Interface', () => {
           y: 0.2,
           width: 0.3,
           height: 0.4
-        }
+        },
+        precisionLevel: 'high',
+        source: 'object_localization'
       };
 
       expect(detectedItem.boundingBox).toBeDefined();
@@ -45,7 +47,9 @@ describe('DetectedItem Interface', () => {
           y: 0.0,    // Minimum valid y
           width: 1.0, // Maximum valid width
           height: 1.0 // Maximum valid height
-        }
+        },
+        precisionLevel: 'high',
+        source: 'object_localization'
       };
 
       expect(validItem.boundingBox.x).toBeGreaterThanOrEqual(0);
@@ -70,7 +74,9 @@ describe('DetectedItem Interface', () => {
           y: 0.5,
           width: 0.5,
           height: 0.5
-        }
+        },
+        precisionLevel: 'high',
+        source: 'object_localization'
       };
 
       // Test that coordinates are properly normalized
@@ -92,7 +98,9 @@ describe('DetectedItem Interface', () => {
           y: 0.3,
           width: 0.4,
           height: 0.5
-        }
+        },
+        precisionLevel: 'high',
+        source: 'object_localization'
       };
 
       expect(completeItem.id).toBeDefined();
@@ -115,7 +123,9 @@ describe('DetectedItem Interface', () => {
           y: 0.1,
           width: 0.2,
           height: 0.2
-        }
+        },
+        precisionLevel: 'high',
+        source: 'object_localization'
       };
 
       expect(highConfidenceItem.confidence).toBeGreaterThanOrEqual(0);
@@ -137,7 +147,9 @@ describe('DetectedItem Interface', () => {
             y: 0.1,
             width: 0.2,
             height: 0.2
-          }
+          },
+          precisionLevel: 'high',
+          source: 'object_localization'
         };
 
         expect(item.category).toBe(category);
@@ -158,7 +170,9 @@ describe('DetectedItem Interface', () => {
           y: 0.3,
           width: 0.4,
           height: 0.5
-        }
+        },
+        precisionLevel: 'high',
+        source: 'object_localization'
       };
 
       const area = item.boundingBox.width * item.boundingBox.height;
@@ -177,7 +191,9 @@ describe('DetectedItem Interface', () => {
           y: 0.8,
           width: 0.3,
           height: 0.2
-        }
+        },
+        precisionLevel: 'high',
+        source: 'object_localization'
       };
 
       // Check that bounding box stays within image boundaries
@@ -198,7 +214,9 @@ describe('DetectedItem Interface', () => {
             { x: 0.4, y: 0.7 },
             { x: 0.1, y: 0.7 }
           ]
-        }
+        },
+        precisionLevel: 'high',
+        source: 'object_localization'
       };
 
       // This would be the expected transformation
@@ -213,7 +231,9 @@ describe('DetectedItem Interface', () => {
           y: 0.2,
           width: 0.3, // 0.4 - 0.1
           height: 0.5 // 0.7 - 0.2
-        }
+        },
+        precisionLevel: 'high',
+        source: 'object_localization'
       };
 
       expect(expectedItem.boundingBox.x).toBe(0.1);
@@ -251,7 +271,9 @@ describe('DetectedItem Interface', () => {
           y: 0.2,
           width: 0.3,
           height: 0.4
-        }
+        },
+        precisionLevel: 'high',
+        source: 'object_localization'
       };
 
       expect(expectedItem.boundingBox.x).toBe(0.1);

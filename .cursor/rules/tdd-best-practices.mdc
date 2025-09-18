@@ -1,0 +1,153 @@
+---
+alwaysApply: true
+---
+
+# TDD Best Practices
+
+Always follow proper Test-Driven Development (TDD) methodology when implementing new features or services.
+
+## Core TDD Principle
+
+**If your tests don't fail first, you're not doing TDD correctly!**
+
+## TDD Cycle: Red-Green-Blue
+
+### 1. RED Phase - Write Failing Tests First
+- Write tests for functionality that **doesn't exist yet**
+- Tests **MUST fail** initially
+- This validates the test is actually testing something new
+
+### 2. GREEN Phase - Make Tests Pass
+- Write **minimal code** to make tests pass
+- Don't worry about code quality yet
+- Focus on making the test pass
+
+### 3. BLUE Phase - Refactor
+- Improve code while keeping tests green
+- Clean up, optimize, and improve without changing functionality
+
+## TDD Checklist
+
+### Before Writing Code:
+- [ ] Do I have a clear requirement?
+- [ ] Can I write a test for this requirement?
+- [ ] Will the test fail initially?
+
+### During Development:
+- [ ] Am I writing minimal code to make tests pass?
+- [ ] Am I adding one test at a time?
+- [ ] Are my tests specific and focused?
+
+### After Implementation:
+- [ ] Do all tests pass?
+- [ ] Can I refactor without breaking tests?
+- [ ] Are tests readable and maintainable?
+
+## Common TDD Mistakes to Avoid
+
+### ❌ **Mistake 1: Writing Tests After Implementation**
+```typescript
+// WRONG: Service already exists
+const existingService = new CategoryFilteringService();
+
+// WRONG: Test written after service exists
+it('should filter categories', () => {
+  const result = existingService.filterItems(items);
+  expect(result).toBeDefined(); // This will pass immediately
+});
+```
+
+### ❌ **Mistake 2: Tests That Always Pass**
+```typescript
+// WRONG: Test that never fails
+it('should process items', () => {
+  const result = processItems(items); // Function already exists
+  expect(result.length).toBeGreaterThan(0); // Always passes
+});
+```
+
+### ❌ **Mistake 3: Implementing Entire Features at Once**
+```typescript
+// WRONG: Implementing everything at once
+class CompleteService {
+  method1() { /* complex implementation */ }
+  method2() { /* complex implementation */ }
+  method3() { /* complex implementation */ }
+}
+```
+
+## Correct TDD Implementation
+
+### ✅ **Start with Failing Test**
+```typescript
+// CORRECT: Test for non-existent functionality
+describe('Category Filtering Service', () => {
+  it('should categorize items as objects of interest', () => {
+    // This test SHOULD FAIL because categorizeItem doesn't exist yet
+    const result = categorizeItem('iPhone');
+    expect(result).toBe('objects_of_interest');
+  });
+});
+```
+
+### ✅ **Minimal Implementation**
+```typescript
+// CORRECT: Minimal code to make test pass
+function categorizeItem(itemName: string): string {
+  if (itemName === 'iPhone') {
+    return 'objects_of_interest';
+  }
+  return 'default';
+}
+```
+
+### ✅ **Refactor and Expand**
+```typescript
+// CORRECT: Refactored implementation
+function categorizeItem(itemName: string): string {
+  const objectsOfInterest = ['iPhone', 'Watch', 'Laptop', 'Book'];
+  const objectsToIgnore = ['Sleeve', 'Table', 'Background'];
+  
+  if (objectsOfInterest.some(item => itemName.includes(item))) {
+    return 'objects_of_interest';
+  }
+  
+  if (objectsToIgnore.some(item => itemName.includes(item))) {
+    return 'objects_to_ignore';
+  }
+  
+  return 'default';
+}
+```
+
+## TDD Guidelines
+
+### For New Features:
+1. Start with the simplest test
+2. Add one test at a time
+3. Implement minimal code
+4. Refactor and expand
+
+### For Integration:
+1. Test individual components first
+2. Then test integration
+3. Keep tests focused and specific
+
+## Anti-Patterns to Avoid
+
+- **Test After Development (TAD)** - Writing tests after implementation
+- **God Tests** - Testing everything in one test
+- **Implementation Testing** - Testing internal implementation details
+
+## Key Rules
+
+1. **Always write failing tests first**
+2. **Implement minimal code to pass tests**
+3. **Refactor frequently**
+4. **Test behavior, not implementation**
+5. **Keep tests simple and focused**
+6. **One test per behavior**
+
+## Reference
+
+For complete TDD guidelines, see: `docs/tdd-best-practices.md`

@@ -1,7 +1,8 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { View, Image, Dimensions, TouchableOpacity, Animated } from 'react-native';
+import { View, Image, Dimensions, TouchableOpacity, Animated, Text as RNText } from 'react-native';
 import Svg, { Rect, Text } from 'react-native-svg';
-import { DetectedItem } from '../services/aiService';
+import { DetectedItem } from '../services/realAiService';
+import { EnhancedDetectionResult } from '../services/enhancedDetectionPipeline';
 
 interface InteractivePhotoViewerProps {
   photoUri: string;
@@ -9,6 +10,8 @@ interface InteractivePhotoViewerProps {
   selectedItemIds: string[];
   onItemSelect: (itemId: string) => void;
   onItemDeselect: (itemId: string) => void;
+  enhancedDetectionResult?: EnhancedDetectionResult;
+  showProcessingMetrics?: boolean;
 }
 
 interface BoundingBoxOverlayProps {
@@ -17,6 +20,7 @@ interface BoundingBoxOverlayProps {
   onItemSelect: (itemId: string) => void;
   imageWidth: number;
   imageHeight: number;
+  enhancedDetectionResult?: EnhancedDetectionResult;
 }
 
 const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
@@ -25,6 +29,7 @@ const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
   onItemSelect,
   imageWidth,
   imageHeight,
+  enhancedDetectionResult,
 }) => {
   const animatedValues = useRef<{ [key: string]: Animated.Value }>({});
 
@@ -64,8 +69,20 @@ const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
       'Home & Garden': '#8BC34A',
       'Toys': '#FFC107',
       'Health': '#F44336',
+      'Accessories': '#FF5722',
+      'AI Analyzed': '#673AB7',
+      'Other': '#757575',
     };
     return colorMap[category] || '#757575';
+  };
+
+  const getPrecisionColor = (precisionLevel: string): string => {
+    const precisionMap: { [key: string]: string } = {
+      'high': '#4CAF50',
+      'medium': '#FF9800',
+      'low': '#F44336',
+    };
+    return precisionMap[precisionLevel] || '#757575';
   };
 
   const convertToScreenCoordinates = (boundingBox: DetectedItem['boundingBox']) => {
@@ -88,13 +105,19 @@ const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
         const isSelected = selectedItemIds.includes(item.id);
         const screenCoords = convertToScreenCoordinates(item.boundingBox);
         const color = getCategoryColor(item.category);
+        const precisionColor = getPrecisionColor(item.precisionLevel);
         const animatedValue = animatedValues.current[item.id];
+        
+        // Enhanced accessibility label with more information
+        const accessibilityLabel = enhancedDetectionResult 
+          ? `${item.name} - ${Math.round(item.confidence * 100)}% confidence, ${item.precisionLevel} precision, ${item.source}`
+          : `${item.name} - ${Math.round(item.confidence * 100)}% confidence`;
         
         return (
           <TouchableOpacity
             key={item.id}
             onPress={() => onItemSelect(item.id)}
-            accessibilityLabel={`${item.name} - ${Math.round(item.confidence * 100)}% confidence`}
+            accessibilityLabel={accessibilityLabel}
             testID={`bounding-box-${item.id}`}
           >
             <Rect
@@ -103,15 +126,9 @@ const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
               width={screenCoords.width}
               height={screenCoords.height}
               fill={color}
-              fillOpacity={animatedValue ? animatedValue.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0.1, 0.3],
-              }) : (isSelected ? 0.3 : 0.1)}
-              stroke={color}
-              strokeWidth={animatedValue ? animatedValue.interpolate({
-                inputRange: [0, 1],
-                outputRange: [2, 3],
-              }) : (isSelected ? 3 : 2)}
+              fillOpacity={animatedValue ? 0.3 : (isSelected ? 0.3 : 0.1)}
+              stroke={precisionColor}
+              strokeWidth={animatedValue ? 3 : (isSelected ? 3 : 2)}
               strokeOpacity={1}
             />
             <Text
@@ -123,6 +140,28 @@ const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
             >
               {item.name}
             </Text>
+            {enhancedDetectionResult && (
+              <>
+                <Text
+                  x={screenCoords.x + 5}
+                  y={screenCoords.y + 30}
+                  fontSize="10"
+                  fill="white"
+                  opacity={0.8}
+                >
+                  {Math.round(item.confidence * 100)}%
+                </Text>
+                <Text
+                  x={screenCoords.x + 5}
+                  y={screenCoords.y + 45}
+                  fontSize="9"
+                  fill={precisionColor}
+                  opacity={0.9}
+                >
+                  {item.precisionLevel}
+                </Text>
+              </>
+            )}
           </TouchableOpacity>
         );
       })}
@@ -136,6 +175,8 @@ export const InteractivePhotoViewer: React.FC<InteractivePhotoViewerProps> = ({
   selectedItemIds,
   onItemSelect,
   onItemDeselect,
+  enhancedDetectionResult,
+  showProcessingMetrics = false,
 }) => {
   const [imageDimensions, setImageDimensions] = useState({ width: 400, height: 300 });
 
@@ -172,7 +213,35 @@ export const InteractivePhotoViewer: React.FC<InteractivePhotoViewerProps> = ({
           onItemSelect={handleItemPress}
           imageWidth={imageDimensions.width}
           imageHeight={imageDimensions.height}
+          enhancedDetectionResult={enhancedDetectionResult}
         />
+      )}
+      
+      {showProcessingMetrics && enhancedDetectionResult && (
+        <View 
+          style={{ 
+            position: 'absolute', 
+            top: 10, 
+            right: 10, 
+            backgroundColor: 'rgba(0,0,0,0.7)', 
+            padding: 8, 
+            borderRadius: 4 
+          }}
+          testID="processing-metrics"
+        >
+          <RNText style={{ color: 'white', fontSize: 10 }}>
+            Processing: {enhancedDetectionResult.processingMetrics.totalProcessingTime}ms
+          </RNText>
+          <RNText style={{ color: 'white', fontSize: 10 }}>
+            Items: {enhancedDetectionResult.items.length}/{enhancedDetectionResult.processingMetrics.filteringStats.total}
+          </RNText>
+          <RNText style={{ color: 'white', fontSize: 10 }}>
+            Relationships: {enhancedDetectionResult.processingMetrics.spatialStats.relationshipsFound}
+          </RNText>
+          <RNText style={{ color: 'white', fontSize: 10 }}>
+            Conflicts: {enhancedDetectionResult.processingMetrics.conflictStats.totalConflicts}
+          </RNText>
+        </View>
       )}
     </View>
   );

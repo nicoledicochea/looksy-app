@@ -1,8 +1,13 @@
 import { analyzeImage } from './realAiService';
 import { analyzeWithAmazonRekognition } from './amazonRekognitionService';
 import { checkUsageLimit, incrementUsage } from './usageTracking';
-import { DetectedItem } from './aiService';
+import { DetectedItem } from './realAiService';
 import { summarizeDetections, SummarizedResult } from './aiSummarizationService';
+import { 
+  executeEnhancedDetectionPipeline, 
+  EnhancedDetectionResult,
+  EnhancedDetectionConfig 
+} from './enhancedDetectionPipeline';
 
 export interface ParallelAnalysisResult {
   success: boolean;
@@ -21,14 +26,19 @@ export interface ParallelAnalysisResult {
     error?: string;
   };
   summarizedResult?: SummarizedResult;
+  enhancedDetectionResult?: EnhancedDetectionResult;
   totalProcessingTime: number;
   error?: string;
 }
 
 /**
- * Analyze photo using both Google Vision and Amazon Rekognition APIs in parallel
+ * Analyze photo using both Google Vision and Amazon Rekognition APIs in parallel with enhanced detection
  */
-export async function analyzePhotoWithMultipleAPIs(imageUri: string): Promise<ParallelAnalysisResult> {
+export async function analyzePhotoWithMultipleAPIs(
+  imageUri: string, 
+  enableEnhancedDetection: boolean = true,
+  enhancedDetectionConfig?: EnhancedDetectionConfig
+): Promise<ParallelAnalysisResult> {
   const startTime = Date.now();
   
   try {
@@ -124,11 +134,44 @@ export async function analyzePhotoWithMultipleAPIs(imageUri: string): Promise<Pa
       // Continue without summarization - the individual API results are still available
     }
 
+    // Perform enhanced detection processing if enabled
+    let enhancedDetectionResult: EnhancedDetectionResult | undefined;
+    if (enableEnhancedDetection) {
+      try {
+        // Combine all detected items from both APIs
+        const allDetectedItems: DetectedItem[] = [];
+        
+        if (googleVisionResults.success && googleVisionResults.items) {
+          allDetectedItems.push(...googleVisionResults.items);
+        }
+        
+        if (amazonRekognitionResults.success && amazonRekognitionResults.items) {
+          allDetectedItems.push(...amazonRekognitionResults.items);
+        }
+        
+        // Execute enhanced detection pipeline
+        enhancedDetectionResult = await executeEnhancedDetectionPipeline(
+          allDetectedItems, 
+          enhancedDetectionConfig
+        );
+        
+        console.log('Enhanced detection completed:', {
+          originalItems: allDetectedItems.length,
+          filteredItems: enhancedDetectionResult.items.length,
+          processingTime: enhancedDetectionResult.processingMetrics.totalProcessingTime
+        });
+      } catch (error) {
+        console.error('Enhanced detection failed:', error);
+        // Continue without enhanced detection - fallback to original results
+      }
+    }
+
     return {
       success: true,
       googleVisionResults,
       amazonRekognitionResults,
       summarizedResult,
+      enhancedDetectionResult,
       totalProcessingTime
     };
 
@@ -141,6 +184,17 @@ export async function analyzePhotoWithMultipleAPIs(imageUri: string): Promise<Pa
       error: error instanceof Error ? error.message : 'Unknown error occurred'
     };
   }
+}
+
+/**
+ * Analyze photo with enhanced detection pipeline only
+ * This function focuses on the enhanced detection without API calls
+ */
+export async function analyzePhotoWithEnhancedDetection(
+  detectedItems: DetectedItem[],
+  config?: EnhancedDetectionConfig
+): Promise<EnhancedDetectionResult> {
+  return await executeEnhancedDetectionPipeline(detectedItems, config);
 }
 
 /**

@@ -15,6 +15,8 @@ describe('InteractivePhotoViewer Logic', () => {
         width: 0.15,
         height: 0.2,
       },
+      precisionLevel: 'high',
+      source: 'object_localization',
     },
     {
       id: 'item2',
@@ -28,6 +30,8 @@ describe('InteractivePhotoViewer Logic', () => {
         width: 0.3,
         height: 0.25,
       },
+      precisionLevel: 'high',
+      source: 'object_localization',
     },
   ];
 

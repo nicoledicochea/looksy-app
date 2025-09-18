@@ -13,6 +13,14 @@ export interface DetectedItem {
     width: number;    // Width (0-1 normalized)
     height: number;   // Height (0-1 normalized)
   };
+  // Enhanced segmentation data
+  segmentationMask?: {
+    normalizedVertices: Array<{ x: number; y: number }>;
+    pixelMask?: string; // Base64 encoded pixel mask data
+  };
+  // Enhanced precision indicators
+  precisionLevel: 'high' | 'medium' | 'low'; // Based on segmentation quality
+  source: 'object_localization' | 'label_detection' | 'fallback';
 }
 
 export interface AIAnalysisResult {
@@ -458,7 +466,7 @@ export async function analyzeImage(imageUri: string): Promise<AIAnalysisResult> 
     let detectedItems: DetectedItem[] = [];
     
     if (objects.length > 0) {
-      // Use localized objects with bounding boxes
+      // Use localized objects with bounding boxes and segmentation masks
       detectedItems = objects
         .filter((obj: any) => obj.score > 0.6)
         .map((obj: any) => {
@@ -470,8 +478,11 @@ export async function analyzeImage(imageUri: string): Promise<AIAnalysisResult> 
             height: 0,
           };
           
+          let precisionLevel: 'high' | 'medium' | 'low' = 'low';
+          let segmentationMask;
+          
           if (boundingPoly.length >= 4) {
-            // Calculate bounding box from vertices
+            // Calculate bounding box from vertices with enhanced precision
             const xs = boundingPoly.map((v: any) => v.x || 0);
             const ys = boundingPoly.map((v: any) => v.y || 0);
             const minX = Math.min(...xs);
@@ -485,6 +496,24 @@ export async function analyzeImage(imageUri: string): Promise<AIAnalysisResult> 
               width: maxX - minX,
               height: maxY - minY,
             };
+            
+            // Determine precision level based on segmentation quality
+            const area = boundingBox.width * boundingBox.height;
+            const vertexCount = boundingPoly.length;
+            
+            if (vertexCount >= 8 && area > 0.01) {
+              precisionLevel = 'high';
+            } else if (vertexCount >= 4 && area > 0.005) {
+              precisionLevel = 'medium';
+            }
+            
+            // Store segmentation mask data for enhanced processing
+            segmentationMask = {
+              normalizedVertices: boundingPoly.map((v: any) => ({
+                x: v.x || 0,
+                y: v.y || 0
+              }))
+            };
           }
           
           return {
@@ -494,6 +523,9 @@ export async function analyzeImage(imageUri: string): Promise<AIAnalysisResult> 
             category: categorizeItem(obj.name || 'Unknown'),
             description: `${obj.name || 'Unknown object'} detected with ${Math.round(obj.score * 100)}% confidence`,
             boundingBox,
+            segmentationMask,
+            precisionLevel,
+            source: 'object_localization' as const,
           };
         });
     } else {
@@ -514,6 +546,8 @@ export async function analyzeImage(imageUri: string): Promise<AIAnalysisResult> 
           width: 0.8,
           height: 0.8,
         },
+        precisionLevel: 'low' as const,
+        source: 'label_detection' as const,
       }];
     }
 
@@ -565,6 +599,8 @@ export async function analyzeImageMock(imageUri: string): Promise<AIAnalysisResu
         width: Math.random() * 0.3 + 0.1, // Random width (0.1-0.4)
         height: Math.random() * 0.3 + 0.1, // Random height (0.1-0.4)
       },
+      precisionLevel: 'medium' as const,
+      source: 'fallback' as const,
     }));
 
   return {

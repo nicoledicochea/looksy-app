@@ -120,6 +120,8 @@ export function PhotoProvider({ children }: { children: ReactNode }) {
               width: 0.8,
               height: 0.8,
             },
+            precisionLevel: 'high' as const,
+            source: 'fallback' as const,
           }],
           processingTime: parallelResult.totalProcessingTime,
           success: true,

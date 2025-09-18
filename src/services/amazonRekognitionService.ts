@@ -79,6 +79,8 @@ export function transformRekognitionResponse(labels: any[]): DetectedItem[] {
       height: 0.8,
     };
     
+    let precisionLevel: 'high' | 'medium' | 'low' = 'low';
+    
     if (label.Instances && label.Instances.length > 0) {
       // Use the first instance's bounding box
       const instance = label.Instances[0];
@@ -89,6 +91,12 @@ export function transformRekognitionResponse(labels: any[]): DetectedItem[] {
           width: instance.BoundingBox.Width,
           height: instance.BoundingBox.Height,
         };
+        
+        // Determine precision level based on bounding box quality
+        const area = boundingBox.width * boundingBox.height;
+        if (area > 0.01) {
+          precisionLevel = 'medium';
+        }
       }
     }
     
@@ -99,6 +107,8 @@ export function transformRekognitionResponse(labels: any[]): DetectedItem[] {
       category: categorizeItem(label.Name),
       description: `${label.Name} detected with ${Math.round(label.Confidence)}% confidence`,
       boundingBox,
+      precisionLevel,
+      source: 'label_detection' as const,
     };
   });
 }

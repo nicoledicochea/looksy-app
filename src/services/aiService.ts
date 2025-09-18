@@ -13,6 +13,14 @@ export interface DetectedItem {
     width: number;    // Width (0-1 normalized)
     height: number;   // Height (0-1 normalized)
   };
+  // Enhanced segmentation data
+  segmentationMask?: {
+    normalizedVertices: Array<{ x: number; y: number }>;
+    pixelMask?: string; // Base64 encoded pixel mask data
+  };
+  // Enhanced precision indicators
+  precisionLevel: 'high' | 'medium' | 'low'; // Based on segmentation quality
+  source: 'object_localization' | 'label_detection' | 'fallback';
 }
 
 export interface AIAnalysisResult {
@@ -56,6 +64,8 @@ export async function analyzeImage(imageUri: string): Promise<AIAnalysisResult> 
         width: Math.random() * 0.3 + 0.1, // Random width (0.1-0.4)
         height: Math.random() * 0.3 + 0.1, // Random height (0.1-0.4)
       },
+      precisionLevel: 'medium' as const,
+      source: 'fallback' as const,
     }));
 
   return {
