@@ -12,15 +12,15 @@
   - [ ] 1.7 Modify storageService to persist new data structure
   - [ ] 1.8 Verify all tests pass
 
-- [ ] 2. **Create Interactive Photo Viewer Component**
-  - [ ] 2.1 Write tests for InteractivePhotoViewer component with touch event handling
-  - [ ] 2.2 Create InteractivePhotoViewer component with photo display and overlay system
-  - [ ] 2.3 Implement BoundingBoxOverlay component with color-coded visual styling
-  - [ ] 2.4 Add touch event handling for bounding box selection
-  - [ ] 2.5 Implement coordinate conversion from screen to normalized coordinates
-  - [ ] 2.6 Add selection state management and visual feedback
-  - [ ] 2.7 Create smooth animations for selection transitions
-  - [ ] 2.8 Verify all tests pass
+- [x] 2. **Create Interactive Photo Viewer Component**
+  - [x] 2.1 Write tests for InteractivePhotoViewer component with touch event handling
+  - [x] 2.2 Create InteractivePhotoViewer component with photo display and overlay system
+  - [x] 2.3 Implement BoundingBoxOverlay component with color-coded visual styling
+  - [x] 2.4 Add touch event handling for bounding box selection
+  - [x] 2.5 Implement coordinate conversion from screen to normalized coordinates
+  - [x] 2.6 Add selection state management and visual feedback
+  - [x] 2.7 Create smooth animations for selection transitions
+  - [x] 2.8 Verify all tests pass
 
 - [ ] 3. **Implement Selection State Management**
   - [ ] 3.1 Write tests for ItemSelectionManager component and selection logic
