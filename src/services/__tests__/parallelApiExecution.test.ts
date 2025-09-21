@@ -5,6 +5,8 @@ import { checkUsageLimit, incrementUsage } from '../usageTracking';
 jest.mock('../realAiService');
 jest.mock('../amazonRekognitionService');
 jest.mock('../usageTracking');
+jest.mock('../aiSummarizationService');
+jest.mock('../enhancedDetectionPipeline');
 
 describe('Parallel API Execution', () => {
   beforeEach(() => {
@@ -18,6 +20,32 @@ describe('Parallel API Execution', () => {
       // Mock usage tracking
       (checkUsageLimit as jest.Mock).mockResolvedValue(true);
       (incrementUsage as jest.Mock).mockResolvedValue(undefined);
+
+      // Mock AI summarization
+      const mockAiSummarization = require('../aiSummarizationService');
+      mockAiSummarization.summarizeDetections.mockResolvedValue({
+        name: 'Jacket',
+        description: 'Jacket detected with 95% confidence',
+        confidence: 0.95,
+        reasoning: 'Fallback analysis using best detection result'
+      });
+
+      // Mock enhanced detection pipeline
+      const mockEnhancedDetection = require('../enhancedDetectionPipeline');
+      mockEnhancedDetection.executeEnhancedDetectionPipeline.mockResolvedValue({
+        items: [],
+        processingMetrics: {
+          totalProcessingTime: 1,
+          categoryFilteringTime: 0,
+          spatialAnalysisTime: 0,
+          overlapResolutionTime: 0,
+          filteringStats: { total: 2, objectsOfInterest: 0, objectsToIgnore: 0, default: 0, filtered: 2, kept: 0 },
+          spatialStats: { relationshipsFound: 0, itemsFiltered: 0 },
+          overlapStats: { totalOverlaps: 0, averageOverlapPercentage: 0, maxOverlapPercentage: 0, overlapDistribution: { low: 0, medium: 0, high: 0, complete: 0 } },
+          conflictStats: { totalConflicts: 0, resolvedConflicts: 0, averageOverlapPercentage: 0 }
+        },
+        success: true
+      });
 
       // Mock Google Vision results
       const mockGoogleVision = require('../realAiService');
@@ -56,6 +84,32 @@ describe('Parallel API Execution', () => {
       (checkUsageLimit as jest.Mock).mockResolvedValue(true);
       (incrementUsage as jest.Mock).mockResolvedValue(undefined);
 
+      // Mock AI summarization
+      const mockAiSummarization = require('../aiSummarizationService');
+      mockAiSummarization.summarizeDetections.mockResolvedValue({
+        name: 'Jacket',
+        description: 'Jacket detected with 95% confidence',
+        confidence: 0.95,
+        reasoning: 'Fallback analysis using best detection result'
+      });
+
+      // Mock enhanced detection pipeline
+      const mockEnhancedDetection = require('../enhancedDetectionPipeline');
+      mockEnhancedDetection.executeEnhancedDetectionPipeline.mockResolvedValue({
+        items: [],
+        processingMetrics: {
+          totalProcessingTime: 1,
+          categoryFilteringTime: 0,
+          spatialAnalysisTime: 0,
+          overlapResolutionTime: 0,
+          filteringStats: { total: 2, objectsOfInterest: 0, objectsToIgnore: 0, default: 0, filtered: 2, kept: 0 },
+          spatialStats: { relationshipsFound: 0, itemsFiltered: 0 },
+          overlapStats: { totalOverlaps: 0, averageOverlapPercentage: 0, maxOverlapPercentage: 0, overlapDistribution: { low: 0, medium: 0, high: 0, complete: 0 } },
+          conflictStats: { totalConflicts: 0, resolvedConflicts: 0, averageOverlapPercentage: 0 }
+        },
+        success: true
+      });
+
       // Mock Google Vision success
       const mockGoogleVision = require('../realAiService');
       mockGoogleVision.analyzeImage.mockResolvedValue({
@@ -88,6 +142,32 @@ describe('Parallel API Execution', () => {
       (checkUsageLimit as jest.Mock).mockResolvedValue(true);
       (incrementUsage as jest.Mock).mockResolvedValue(undefined);
 
+      // Mock AI summarization
+      const mockAiSummarization = require('../aiSummarizationService');
+      mockAiSummarization.summarizeDetections.mockResolvedValue({
+        name: 'No Items',
+        description: 'No items detected',
+        confidence: 0.0,
+        reasoning: 'Both APIs failed'
+      });
+
+      // Mock enhanced detection pipeline
+      const mockEnhancedDetection = require('../enhancedDetectionPipeline');
+      mockEnhancedDetection.executeEnhancedDetectionPipeline.mockResolvedValue({
+        items: [],
+        processingMetrics: {
+          totalProcessingTime: 0,
+          categoryFilteringTime: 0,
+          spatialAnalysisTime: 0,
+          overlapResolutionTime: 0,
+          filteringStats: { total: 0, objectsOfInterest: 0, objectsToIgnore: 0, default: 0, filtered: 0, kept: 0 },
+          spatialStats: { relationshipsFound: 0, itemsFiltered: 0 },
+          overlapStats: { totalOverlaps: 0, averageOverlapPercentage: 0, maxOverlapPercentage: 0, overlapDistribution: { low: 0, medium: 0, high: 0, complete: 0 } },
+          conflictStats: { totalConflicts: 0, resolvedConflicts: 0, averageOverlapPercentage: 0 }
+        },
+        success: true
+      });
+
       // Mock both APIs failing
       const mockGoogleVision = require('../realAiService');
       mockGoogleVision.analyzeImage.mockResolvedValue({
@@ -119,6 +199,32 @@ describe('Parallel API Execution', () => {
       // Mock usage limit exceeded
       (checkUsageLimit as jest.Mock).mockResolvedValue(false);
 
+      // Mock AI summarization (shouldn't be called due to usage limit)
+      const mockAiSummarization = require('../aiSummarizationService');
+      mockAiSummarization.summarizeDetections.mockResolvedValue({
+        name: 'No Items',
+        description: 'No items detected',
+        confidence: 0.0,
+        reasoning: 'Usage limit exceeded'
+      });
+
+      // Mock enhanced detection pipeline (shouldn't be called due to usage limit)
+      const mockEnhancedDetection = require('../enhancedDetectionPipeline');
+      mockEnhancedDetection.executeEnhancedDetectionPipeline.mockResolvedValue({
+        items: [],
+        processingMetrics: {
+          totalProcessingTime: 0,
+          categoryFilteringTime: 0,
+          spatialAnalysisTime: 0,
+          overlapResolutionTime: 0,
+          filteringStats: { total: 0, objectsOfInterest: 0, objectsToIgnore: 0, default: 0, filtered: 0, kept: 0 },
+          spatialStats: { relationshipsFound: 0, itemsFiltered: 0 },
+          overlapStats: { totalOverlaps: 0, averageOverlapPercentage: 0, maxOverlapPercentage: 0, overlapDistribution: { low: 0, medium: 0, high: 0, complete: 0 } },
+          conflictStats: { totalConflicts: 0, resolvedConflicts: 0, averageOverlapPercentage: 0 }
+        },
+        success: true
+      });
+
       const result = await analyzePhotoWithMultipleAPIs(mockImageUri);
 
       expect(result.success).toBe(false);
@@ -133,6 +239,32 @@ describe('Parallel API Execution', () => {
       // Mock usage tracking
       (checkUsageLimit as jest.Mock).mockResolvedValue(true);
       (incrementUsage as jest.Mock).mockResolvedValue(undefined);
+
+      // Mock AI summarization
+      const mockAiSummarization = require('../aiSummarizationService');
+      mockAiSummarization.summarizeDetections.mockResolvedValue({
+        name: 'Jacket',
+        description: 'Jacket detected with 95% confidence',
+        confidence: 0.95,
+        reasoning: 'Fallback analysis using best detection result'
+      });
+
+      // Mock enhanced detection pipeline
+      const mockEnhancedDetection = require('../enhancedDetectionPipeline');
+      mockEnhancedDetection.executeEnhancedDetectionPipeline.mockResolvedValue({
+        items: [],
+        processingMetrics: {
+          totalProcessingTime: 1,
+          categoryFilteringTime: 0,
+          spatialAnalysisTime: 0,
+          overlapResolutionTime: 0,
+          filteringStats: { total: 2, objectsOfInterest: 0, objectsToIgnore: 0, default: 0, filtered: 2, kept: 0 },
+          spatialStats: { relationshipsFound: 0, itemsFiltered: 0 },
+          overlapStats: { totalOverlaps: 0, averageOverlapPercentage: 0, maxOverlapPercentage: 0, overlapDistribution: { low: 0, medium: 0, high: 0, complete: 0 } },
+          conflictStats: { totalConflicts: 0, resolvedConflicts: 0, averageOverlapPercentage: 0 }
+        },
+        success: true
+      });
 
       // Mock both APIs succeeding
       const mockGoogleVision = require('../realAiService');
