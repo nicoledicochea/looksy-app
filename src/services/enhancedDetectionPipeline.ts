@@ -19,6 +19,10 @@ import {
   shouldOptimizeProcessing,
   optimizeProcessing
 } from './performanceMonitoringService';
+import { 
+  qualityMetricsTracker,
+  QualityMetrics
+} from './qualityMetricsService';
 
 /**
  * Enhanced Detection Pipeline
@@ -71,6 +75,7 @@ export interface EnhancedDetectionResult {
       averageOverlapPercentage: number;
     };
   };
+  qualityMetrics?: QualityMetrics;
   success: boolean;
   error?: string;
 }
@@ -199,6 +204,46 @@ export async function executeEnhancedDetectionPipeline(
     
     // Record performance metrics
     recordEnhancedDetectionPerformance(result, items.length);
+    
+    // Calculate and record quality metrics
+    if (config.performance.enableMetrics) {
+      try {
+        qualityMetricsTracker.recordDetectionResult({
+          items: result.items,
+          processingTime: totalProcessingTime,
+          success: true,
+          timestamp: new Date()
+        });
+        
+        // Get current quality metrics and add to result
+        const currentMetrics = qualityMetricsTracker.getCurrentMetrics();
+        result.qualityMetrics = {
+          precision: currentMetrics.averagePrecision,
+          recall: currentMetrics.averageRecall,
+          f1Score: currentMetrics.averageF1Score,
+          confidenceStats: {
+            mean: currentMetrics.averageConfidence,
+            median: currentMetrics.averageConfidence, // Simplified for now
+            min: Math.min(...result.items.map(item => item.confidence)),
+            max: Math.max(...result.items.map(item => item.confidence)),
+            standardDeviation: 0.1, // Simplified for now
+            outlierCount: 0 // Simplified for now
+          },
+          processingTime: totalProcessingTime,
+          timestamp: new Date()
+        };
+        
+        console.log('Quality metrics recorded:', {
+          precision: result.qualityMetrics.precision,
+          recall: result.qualityMetrics.recall,
+          f1Score: result.qualityMetrics.f1Score,
+          averageConfidence: result.qualityMetrics.confidenceStats.mean
+        });
+      } catch (error) {
+        console.warn('Failed to record quality metrics:', error);
+        // Continue without quality metrics - don't fail the entire pipeline
+      }
+    }
     
     // Check performance requirements and apply optimizations if needed
     if (totalProcessingTime > config.performance.maxProcessingTime) {
