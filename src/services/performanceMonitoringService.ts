@@ -1,5 +1,6 @@
 import { DetectedItem } from './realAiService';
 import { EnhancedDetectionResult } from './enhancedDetectionPipeline';
+import { PerformanceOptimizer } from './performanceOptimizationService';
 
 /**
  * Performance Monitoring Service
@@ -17,6 +18,12 @@ export interface PerformanceMetrics {
   error?: string;
   metadata?: {
     [key: string]: any;
+    // New metrics from performance optimization service
+    cacheHit?: boolean;
+    cacheSize?: number;
+    parallelTasks?: number;
+    bottleneckStage?: string;
+    optimizationApplied?: string[];
   };
 }
 
@@ -200,6 +207,41 @@ class PerformanceMonitor {
       recommendations.push('Consider memory optimization for large item processing');
     }
 
+    // Check for cache performance
+    const cacheMetrics = metrics.filter(m => m.operation.startsWith('cache_'));
+    if (cacheMetrics.length > 0) {
+      const cacheHitRate = cacheMetrics.filter(m => m.metadata?.cacheHit).length / cacheMetrics.length;
+      if (cacheHitRate < 0.7) {
+        recommendations.push('Low cache hit rate - consider improving cache strategy');
+      }
+    }
+
+    // Check for parallel processing efficiency
+    const parallelMetrics = metrics.filter(m => m.operation.startsWith('parallel_'));
+    if (parallelMetrics.length > 0) {
+      const avgParallelTasks = parallelMetrics.reduce((sum, m) => sum + (m.metadata?.parallelTasks || 0), 0) / parallelMetrics.length;
+      if (avgParallelTasks < 2) {
+        recommendations.push('Consider increasing parallel processing for better performance');
+      }
+    }
+
+    // Check for bottleneck patterns
+    const bottleneckMetrics = metrics.filter(m => m.operation.startsWith('bottleneck_'));
+    if (bottleneckMetrics.length > 0) {
+      const commonBottlenecks = bottleneckMetrics.reduce((acc, m) => {
+        const stage = m.metadata?.bottleneckStage;
+        if (stage) {
+          acc[stage] = (acc[stage] || 0) + 1;
+        }
+        return acc;
+      }, {} as Record<string, number>);
+      
+      const mostCommonBottleneck = Object.entries(commonBottlenecks).sort(([,a], [,b]) => b - a)[0];
+      if (mostCommonBottleneck && mostCommonBottleneck[1] > 3) {
+        recommendations.push(`Frequent bottleneck in ${mostCommonBottleneck[0]} - consider optimization`);
+      }
+    }
+
     if (recommendations.length === 0) {
       recommendations.push('Performance is within acceptable ranges');
     }
@@ -313,6 +355,89 @@ export function recordApiPerformance(
     itemCount,
     success,
     error
+  });
+}
+
+/**
+ * Record performance metric for caching operations
+ */
+export function recordCachePerformance(
+  operation: string,
+  duration: number,
+  cacheHit: boolean,
+  cacheSize: number,
+  itemCount: number = 0
+): void {
+  performanceMonitor.recordMetric({
+    operation: `cache_${operation}`,
+    duration,
+    itemCount,
+    success: true,
+    metadata: {
+      cacheHit,
+      cacheSize
+    }
+  });
+}
+
+/**
+ * Record performance metric for parallel processing operations
+ */
+export function recordParallelProcessingPerformance(
+  operation: string,
+  duration: number,
+  parallelTasks: number,
+  itemCount: number = 0,
+  success: boolean = true
+): void {
+  performanceMonitor.recordMetric({
+    operation: `parallel_${operation}`,
+    duration,
+    itemCount,
+    success,
+    metadata: {
+      parallelTasks
+    }
+  });
+}
+
+/**
+ * Record performance metric for bottleneck identification
+ */
+export function recordBottleneckPerformance(
+  operation: string,
+  duration: number,
+  bottleneckStage: string,
+  itemCount: number = 0
+): void {
+  performanceMonitor.recordMetric({
+    operation: `bottleneck_${operation}`,
+    duration,
+    itemCount,
+    success: true,
+    metadata: {
+      bottleneckStage
+    }
+  });
+}
+
+/**
+ * Record performance metric for optimization operations
+ */
+export function recordOptimizationPerformance(
+  operation: string,
+  duration: number,
+  optimizationApplied: string[],
+  itemCount: number = 0
+): void {
+  performanceMonitor.recordMetric({
+    operation: `optimization_${operation}`,
+    duration,
+    itemCount,
+    success: true,
+    metadata: {
+      optimizationApplied
+    }
   });
 }
 
