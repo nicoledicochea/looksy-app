@@ -241,6 +241,46 @@ export const InteractivePhotoViewer: React.FC<InteractivePhotoViewerProps> = ({
           <RNText style={{ color: 'white', fontSize: 10 }}>
             Conflicts: {enhancedDetectionResult.processingMetrics.conflictStats.totalConflicts}
           </RNText>
+          {enhancedDetectionResult.processingMetrics.dynamicThresholdStats && (
+            <>
+              <RNText style={{ color: 'white', fontSize: 10 }}>
+                Adaptive: {enhancedDetectionResult.processingMetrics.dynamicThresholdStats.adaptiveThresholdCalculated ? 'Yes' : 'No'}
+              </RNText>
+              <RNText style={{ color: 'white', fontSize: 10 }}>
+                Thresholds: {enhancedDetectionResult.processingMetrics.dynamicThresholdStats.thresholdsUpdated ? 'Updated' : 'Stable'}
+              </RNText>
+            </>
+          )}
+        </View>
+      )}
+      
+      {showProcessingMetrics && enhancedDetectionResult && (
+        <View 
+          style={{ 
+            position: 'absolute', 
+            bottom: 10, 
+            right: 10, 
+            backgroundColor: 'rgba(0,0,0,0.7)', 
+            padding: 8, 
+            borderRadius: 4 
+          }}
+          testID="quality-metrics"
+        >
+          <RNText style={{ color: 'white', fontSize: 10 }}>
+            Quality Metrics
+          </RNText>
+          <RNText style={{ color: 'white', fontSize: 10 }}>
+            Precision: {enhancedDetectionResult.processingMetrics.filteringStats.precision.toFixed(2)}
+          </RNText>
+          <RNText style={{ color: 'white', fontSize: 10 }}>
+            Recall: {enhancedDetectionResult.processingMetrics.filteringStats.recall.toFixed(2)}
+          </RNText>
+          <RNText style={{ color: 'white', fontSize: 10 }}>
+            F1-Score: {enhancedDetectionResult.processingMetrics.filteringStats.f1Score.toFixed(2)}
+          </RNText>
+          <RNText style={{ color: 'white', fontSize: 10 }}>
+            Avg Confidence: {(enhancedDetectionResult.items.reduce((sum, item) => sum + item.confidence, 0) / Math.max(1, enhancedDetectionResult.items.length)).toFixed(2)}
+          </RNText>
         </View>
       )}
     </View>

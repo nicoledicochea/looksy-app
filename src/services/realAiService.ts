@@ -1,5 +1,9 @@
 // Real Google Cloud Vision API service
 import { GOOGLE_CLOUD_CONFIG } from '../config/googleCloud';
+import { 
+  createEnhancedDetectedItem,
+  processSegmentationMask 
+} from './enhancedSegmentationPrecisionService';
 
 export interface DetectedItem {
   id: string;
@@ -471,62 +475,28 @@ export async function analyzeImage(imageUri: string): Promise<AIAnalysisResult> 
         .filter((obj: any) => obj.score > 0.6)
         .map((obj: any) => {
           const boundingPoly = obj.boundingPoly?.normalizedVertices || [];
-          let boundingBox = {
-            x: 0,
-            y: 0,
-            width: 0,
-            height: 0,
-          };
           
-          let precisionLevel: 'high' | 'medium' | 'low' = 'low';
-          let segmentationMask;
-          
-          if (boundingPoly.length >= 4) {
-            // Calculate bounding box from vertices with enhanced precision
-            const xs = boundingPoly.map((v: any) => v.x || 0);
-            const ys = boundingPoly.map((v: any) => v.y || 0);
-            const minX = Math.min(...xs);
-            const maxX = Math.max(...xs);
-            const minY = Math.min(...ys);
-            const maxY = Math.max(...ys);
-            
-            boundingBox = {
-              x: minX,
-              y: minY,
-              width: maxX - minX,
-              height: maxY - minY,
-            };
-            
-            // Determine precision level based on segmentation quality
-            const area = boundingBox.width * boundingBox.height;
-            const vertexCount = boundingPoly.length;
-            
-            if (vertexCount >= 8 && area > 0.01) {
-              precisionLevel = 'high';
-            } else if (vertexCount >= 4 && area > 0.005) {
-              precisionLevel = 'medium';
-            }
-            
-            // Store segmentation mask data for enhanced processing
-            segmentationMask = {
-              normalizedVertices: boundingPoly.map((v: any) => ({
-                x: v.x || 0,
-                y: v.y || 0
-              }))
+          // Use enhanced segmentation precision for better accuracy
+          if (boundingPoly.length >= 3) {
+            return createEnhancedDetectedItem(obj);
+          } else {
+            // Fallback for objects without sufficient vertices
+            return {
+              id: `real_object_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+              name: obj.name || 'Unknown Object',
+              confidence: obj.score,
+              category: categorizeItem(obj.name || 'Unknown'),
+              description: `${obj.name || 'Unknown object'} detected with ${Math.round(obj.score * 100)}% confidence`,
+              boundingBox: {
+                x: 0.1,
+                y: 0.1,
+                width: 0.8,
+                height: 0.8,
+              },
+              precisionLevel: 'low' as const,
+              source: 'object_localization' as const,
             };
           }
-          
-          return {
-            id: `real_object_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-            name: obj.name || 'Unknown Object',
-            confidence: obj.score,
-            category: categorizeItem(obj.name || 'Unknown'),
-            description: `${obj.name || 'Unknown object'} detected with ${Math.round(obj.score * 100)}% confidence`,
-            boundingBox,
-            segmentationMask,
-            precisionLevel,
-            source: 'object_localization' as const,
-          };
         });
     } else {
       // Fallback to labels without bounding boxes

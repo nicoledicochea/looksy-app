@@ -19,6 +19,19 @@ import {
   shouldOptimizeProcessing,
   optimizeProcessing
 } from './performanceMonitoringService';
+import { 
+  qualityMetricsTracker, 
+  QualityMetrics 
+} from './qualityMetricsService';
+import { 
+  applyAdvancedContextualFiltering 
+} from './enhancedContextualFilteringService';
+import { 
+  dynamicThresholdManager,
+  calculateAdaptiveThreshold,
+  getOptimalThresholds,
+  DetectionContext
+} from './dynamicThresholdService';
 
 /**
  * Enhanced Detection Pipeline
@@ -41,6 +54,17 @@ export interface EnhancedDetectionConfig {
   performance: {
     maxProcessingTime: number; // milliseconds
     enableMetrics: boolean;
+    enableOptimization: boolean;
+  };
+  contextualFiltering: {
+    enableAdvancedFiltering: boolean;
+    watchSleeveDetection: boolean;
+  };
+  dynamicThresholds: {
+    enableDynamicThresholds: boolean;
+    adaptiveThresholds: boolean;
+    categorySpecificThresholds: boolean;
+    learningFromFeedback: boolean;
   };
 }
 
@@ -51,6 +75,7 @@ export interface EnhancedDetectionResult {
     categoryFilteringTime: number;
     spatialAnalysisTime: number;
     overlapResolutionTime: number;
+    contextualFilteringTime: number;
     filteringStats: {
       total: number;
       objectsOfInterest: number;
@@ -70,7 +95,25 @@ export interface EnhancedDetectionResult {
       resolvedConflicts: number;
       averageOverlapPercentage: number;
     };
+    contextualStats: {
+      parentChildRelationshipsFound: number;
+      conflictsResolved: number;
+      watchSleeveScenariosDetected: number;
+    };
+    dynamicThresholdStats: {
+      adaptiveThresholdCalculated: boolean;
+      categorySpecificThresholdsApplied: boolean;
+      thresholdsUpdated: boolean;
+      currentThresholds: Record<string, number>;
+      thresholdAdjustments: Array<{
+        category: string;
+        oldThreshold: number;
+        newThreshold: number;
+        reason: string;
+      }>;
+    };
   };
+  qualityMetrics?: QualityMetrics;
   success: boolean;
   error?: string;
 }
@@ -133,7 +176,18 @@ const defaultConfig: EnhancedDetectionConfig = {
   },
   performance: {
     maxProcessingTime: 3000, // 3 seconds
-    enableMetrics: true
+    enableMetrics: true,
+    enableOptimization: true
+  },
+  contextualFiltering: {
+    enableAdvancedFiltering: true,
+    watchSleeveDetection: true
+  },
+  dynamicThresholds: {
+    enableDynamicThresholds: true,
+    adaptiveThresholds: true,
+    categorySpecificThresholds: true,
+    learningFromFeedback: true
   }
 };
 
@@ -179,26 +233,194 @@ export async function executeEnhancedDetectionPipeline(
       averageOverlapPercentage: overlapResolution.conflicts.resolutionMetrics.averageOverlapPercentage
     };
     
+    // Stage 4: Advanced contextual filtering (NEW)
+    const contextualFilteringStartTime = Date.now();
+    const contextualFilteringResult = applyAdvancedContextualFiltering(overlapResolution.resolvedItems);
+    const contextualFilteringTime = Date.now() - contextualFilteringStartTime;
+    
+    const contextualStats = {
+      parentChildRelationshipsFound: contextualFilteringResult.filteringMetrics.parentChildRelationshipsFound,
+      conflictsResolved: contextualFilteringResult.filteringMetrics.conflictsResolved,
+      watchSleeveScenariosDetected: contextualFilteringResult.filteringMetrics.watchSleeveScenariosDetected
+    };
+    
+    // Stage 5: Dynamic Threshold Adjustment (NEW)
+    const dynamicThresholdStartTime = Date.now();
+    let dynamicThresholdStats = {
+      adaptiveThresholdCalculated: false,
+      categorySpecificThresholdsApplied: false,
+      thresholdsUpdated: false,
+      currentThresholds: dynamicThresholdManager.getCurrentThresholds(),
+      thresholdAdjustments: [] as Array<{
+        category: string;
+        oldThreshold: number;
+        newThreshold: number;
+        reason: string;
+      }>
+    };
+
+    // Calculate total processing time so far for use in dynamic threshold processing
+    const currentProcessingTime = Date.now() - startTime;
+
+    if (config.dynamicThresholds.enableDynamicThresholds) {
+      // Calculate adaptive threshold based on detection context
+      if (config.dynamicThresholds.adaptiveThresholds) {
+        const detectionContext: DetectionContext = {
+          imageQuality: 'high', // Simplified - could be determined from image analysis
+          lighting: 'good',     // Simplified - could be determined from image analysis
+          itemCount: contextualFilteringResult.filteredItems.length,
+          averageConfidence: contextualFilteringResult.filteredItems.reduce((sum, item) => sum + item.confidence, 0) / Math.max(1, contextualFilteringResult.filteredItems.length),
+          categoryDistribution: contextualFilteringResult.filteredItems.reduce((dist, item) => {
+            dist[item.category] = (dist[item.category] || 0) + 1;
+            return dist;
+          }, {} as Record<string, number>)
+        };
+
+        const adaptiveThreshold = calculateAdaptiveThreshold(detectionContext);
+        dynamicThresholdStats.adaptiveThresholdCalculated = true;
+        
+        // Apply adaptive threshold to items (simplified - in practice this would be more sophisticated)
+        contextualFilteringResult.filteredItems = contextualFilteringResult.filteredItems.filter(item => 
+          item.confidence >= adaptiveThreshold
+        );
+      }
+
+      // Apply category-specific thresholds
+      if (config.dynamicThresholds.categorySpecificThresholds) {
+        const currentThresholds = dynamicThresholdManager.getCurrentThresholds();
+        contextualFilteringResult.filteredItems = contextualFilteringResult.filteredItems.filter(item => {
+          const categoryThreshold = currentThresholds[item.category] || currentThresholds.default;
+          return item.confidence >= categoryThreshold;
+        });
+        dynamicThresholdStats.categorySpecificThresholdsApplied = true;
+      }
+
+      // Update thresholds based on quality metrics if available
+      if (config.performance.enableMetrics) {
+        try {
+          const currentMetrics = qualityMetricsTracker.getCurrentMetrics();
+          if (currentMetrics.averagePrecision > 0 && currentMetrics.averageRecall > 0) {
+            const qualityMetrics: QualityMetrics = {
+              precision: currentMetrics.averagePrecision,
+              recall: currentMetrics.averageRecall,
+              f1Score: currentMetrics.averageF1Score,
+              confidenceStats: {
+                mean: currentMetrics.averageConfidence,
+                median: currentMetrics.averageConfidence,
+                min: Math.min(...contextualFilteringResult.filteredItems.map(item => item.confidence)),
+                max: Math.max(...contextualFilteringResult.filteredItems.map(item => item.confidence)),
+                standardDeviation: 0.1, // Simplified
+                outlierCount: 0
+              },
+              processingTime: currentProcessingTime,
+              timestamp: new Date()
+            };
+
+            const optimalThresholds = getOptimalThresholds(qualityMetrics);
+            const oldThresholds = dynamicThresholdManager.getCurrentThresholds();
+            
+            // Update thresholds if they've changed significantly
+            let thresholdsChanged = false;
+            Object.keys(optimalThresholds).forEach(category => {
+              const oldThreshold = oldThresholds[category] || oldThresholds.default;
+              const newThreshold = optimalThresholds[category];
+              if (Math.abs(newThreshold - oldThreshold) > 0.05) { // 5% change threshold
+                dynamicThresholdStats.thresholdAdjustments.push({
+                  category,
+                  oldThreshold,
+                  newThreshold,
+                  reason: 'quality_metrics_optimization'
+                });
+                thresholdsChanged = true;
+              }
+            });
+
+            if (thresholdsChanged) {
+              dynamicThresholdManager.updateThresholds(optimalThresholds, 'quality_metrics_optimization', qualityMetrics);
+              dynamicThresholdStats.thresholdsUpdated = true;
+            }
+          }
+        } catch (error) {
+          console.warn('Failed to update thresholds based on quality metrics:', error);
+        }
+      }
+    }
+
+    const dynamicThresholdTime = Date.now() - dynamicThresholdStartTime;
+    
     const totalProcessingTime = Date.now() - startTime;
+    
+    // Update totalProcessingTime in dynamic threshold stats if needed
+    if (config.dynamicThresholds.enableDynamicThresholds && config.dynamicThresholds.learningFromFeedback) {
+      dynamicThresholdManager.recordDetectionResult({
+        items: contextualFilteringResult.filteredItems,
+        processingTime: totalProcessingTime,
+        success: true,
+        timestamp: new Date()
+      });
+    }
     
     // Create result object
     const result: EnhancedDetectionResult = {
-      items: overlapResolution.resolvedItems,
+      items: contextualFilteringResult.filteredItems,
       processingMetrics: {
         totalProcessingTime,
         categoryFilteringTime,
         spatialAnalysisTime,
         overlapResolutionTime,
+        contextualFilteringTime,
         filteringStats,
         spatialStats,
         overlapStats: overlapResolution.statistics,
-        conflictStats
+        conflictStats,
+        contextualStats,
+        dynamicThresholdStats
       },
       success: true
     };
     
     // Record performance metrics
     recordEnhancedDetectionPerformance(result, items.length);
+    
+    // Calculate and record quality metrics
+    if (config.performance.enableMetrics) {
+      try {
+        qualityMetricsTracker.recordDetectionResult({
+          items: result.items,
+          processingTime: totalProcessingTime,
+          success: true,
+          timestamp: new Date()
+        });
+        
+        // Get current quality metrics and add to result
+        const currentMetrics = qualityMetricsTracker.getCurrentMetrics();
+        result.qualityMetrics = {
+          precision: currentMetrics.averagePrecision,
+          recall: currentMetrics.averageRecall,
+          f1Score: currentMetrics.averageF1Score,
+          confidenceStats: {
+            mean: currentMetrics.averageConfidence,
+            median: currentMetrics.averageConfidence, // Simplified for now
+            min: Math.min(...result.items.map(item => item.confidence)),
+            max: Math.max(...result.items.map(item => item.confidence)),
+            standardDeviation: 0.1, // Simplified for now
+            outlierCount: 0 // Simplified for now
+          },
+          processingTime: totalProcessingTime,
+          timestamp: new Date()
+        };
+        
+        console.log('Quality metrics recorded:', {
+          precision: result.qualityMetrics.precision,
+          recall: result.qualityMetrics.recall,
+          f1Score: result.qualityMetrics.f1Score,
+          averageConfidence: result.qualityMetrics.confidenceStats.mean
+        });
+      } catch (error) {
+        console.warn('Failed to record quality metrics:', error);
+        // Continue without quality metrics - don't fail the entire pipeline
+      }
+    }
     
     // Check performance requirements and apply optimizations if needed
     if (totalProcessingTime > config.performance.maxProcessingTime) {
@@ -225,6 +447,7 @@ export async function executeEnhancedDetectionPipeline(
         categoryFilteringTime: 0,
         spatialAnalysisTime: 0,
         overlapResolutionTime: 0,
+        contextualFilteringTime: 0,
         filteringStats: {
           total: items.length,
           objectsOfInterest: 0,
@@ -253,6 +476,18 @@ export async function executeEnhancedDetectionPipeline(
           totalConflicts: 0,
           resolvedConflicts: 0,
           averageOverlapPercentage: 0
+        },
+        contextualStats: {
+          parentChildRelationshipsFound: 0,
+          conflictsResolved: 0,
+          watchSleeveScenariosDetected: 0
+        },
+        dynamicThresholdStats: {
+          adaptiveThresholdCalculated: false,
+          categorySpecificThresholdsApplied: false,
+          thresholdsUpdated: false,
+          currentThresholds: {},
+          thresholdAdjustments: []
         }
       },
       success: false,
@@ -280,9 +515,12 @@ export async function executeEnhancedDetectionWithMonitoring(
       categoryFilteringTime: `${result.processingMetrics.categoryFilteringTime}ms`,
       spatialAnalysisTime: `${result.processingMetrics.spatialAnalysisTime}ms`,
       overlapResolutionTime: `${result.processingMetrics.overlapResolutionTime}ms`,
+      contextualFilteringTime: `${result.processingMetrics.contextualFilteringTime}ms`,
       filteringEfficiency: `${((result.processingMetrics.filteringStats.kept / result.processingMetrics.filteringStats.total) * 100).toFixed(1)}%`,
       relationshipsFound: result.processingMetrics.spatialStats.relationshipsFound,
       conflictsResolved: result.processingMetrics.conflictStats.resolvedConflicts,
+      contextualRelationshipsFound: result.processingMetrics.contextualStats.parentChildRelationshipsFound,
+      watchSleeveScenariosDetected: result.processingMetrics.contextualStats.watchSleeveScenariosDetected,
       performanceStatus
     });
   }
@@ -297,7 +535,9 @@ export function createCustomEnhancedDetectionConfig(
   customCategoryFiltering?: Partial<CategoryFilteringConfig>,
   customSpatialAnalysis?: Partial<EnhancedDetectionConfig['spatialAnalysis']>,
   customOverlapResolution?: Partial<EnhancedDetectionConfig['overlapResolution']>,
-  customPerformance?: Partial<EnhancedDetectionConfig['performance']>
+  customPerformance?: Partial<EnhancedDetectionConfig['performance']>,
+  customContextualFiltering?: Partial<EnhancedDetectionConfig['contextualFiltering']>,
+  customDynamicThresholds?: Partial<EnhancedDetectionConfig['dynamicThresholds']>
 ): EnhancedDetectionConfig {
   return {
     categoryFiltering: {
@@ -319,6 +559,14 @@ export function createCustomEnhancedDetectionConfig(
     performance: {
       ...defaultConfig.performance,
       ...customPerformance
+    },
+    contextualFiltering: {
+      ...defaultConfig.contextualFiltering,
+      ...customContextualFiltering
+    },
+    dynamicThresholds: {
+      ...defaultConfig.dynamicThresholds,
+      ...customDynamicThresholds
     }
   };
 }
