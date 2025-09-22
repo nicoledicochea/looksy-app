@@ -53,6 +53,27 @@ The following features have been implemented:
 - [x] **AI Summarization System** - Combine Google Vision + Amazon Rekognition results into single comprehensive description `L`
 - [x] **Multi-API Ensemble Scoring** - Intelligent combination of results from multiple APIs with confidence weighting `L`
 - [x] **Brand Detection System** - Implement reliable brand and logo recognition across multiple APIs `M`
+- [x] **Multi-Category Support** - Implement comprehensive categorization for electronics, books, home, sports, toys, kitchen, tools `M`
+- [ ] **Bounding Box Visualization** - Show detected items with visual highlighting on photos using Google Vision coordinates `M`
+- [ ] **Interactive Item Selection** - Click items in list to highlight on photo, click photo to select in list `L`
+- [ ] **Confidence Visualization** - Display confidence levels visually for user understanding `S`
+- [x] **Testing Framework** - Unit tests, integration tests, and device testing as features are developed `M`
+
+## Phase 1.5: Multi-Item Analysis & Enhanced Logging (Current Priority)
+
+**Goal:** Implement per-item analysis pipeline with comprehensive logging and visibility analysis
+**Success Criteria:** Multiple items per photo, accurate color detection, comprehensive debugging data
+
+### Features
+
+- [ ] **Enhanced Logging System** - Comprehensive raw API data logging with color detection and overlap analysis `M`
+- [ ] **Per-Item Analysis Pipeline** - Analyze each detected item individually instead of photo-level summaries `L`
+- [ ] **Visibility Analysis** - Calculate item visibility using bounding box overlap (>30% overlap threshold) `M`
+- [ ] **Color Detection Debugging** - Log color data from both APIs to identify detection issues `S`
+- [ ] **Overlap Analysis Logging** - Track which items overlap and why items are filtered out `S`
+- [ ] **Multiple Items UI** - Display multiple items per photo in catalog with visibility indicators `M`
+- [ ] **Partial Visibility Alerts** - Show user alerts for items <50% visible with analysis limitations `S`
+- [ ] **Item Ordering** - Sort items by visibility and confidence for best quality analysis first `S`
 
 ### Interactive UI & Visualization ✅
 
