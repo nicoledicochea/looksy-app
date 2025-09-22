@@ -64,24 +64,30 @@ The following features have been implemented:
 **Goal:** Implement per-item analysis pipeline with comprehensive logging and visibility analysis
 **Success Criteria:** Multiple items per photo, accurate color detection, comprehensive debugging data
 
-### Features
+### Features (Priority Order)
 
+**Priority 1: Enhanced Logging System**
 - [ ] **Enhanced Logging System** - Comprehensive raw API data logging with color detection and overlap analysis `M`
+- [ ] **Overlap Analysis Logging** - Track which items overlap and why items are filtered out `S`
+
+**Priority 2: Per-Item Analysis Pipeline**
 - [ ] **Per-Item Analysis Pipeline** - Analyze each detected item individually instead of photo-level summaries `L`
 - [ ] **Visibility Analysis** - Calculate item visibility using bounding box overlap (>30% overlap threshold) `M`
-- [ ] **Color Detection Debugging** - Log color data from both APIs to identify detection issues `S`
-- [ ] **Overlap Analysis Logging** - Track which items overlap and why items are filtered out `S`
 - [ ] **Multiple Items UI** - Display multiple items per photo in catalog with visibility indicators `M`
 - [ ] **Partial Visibility Alerts** - Show user alerts for items <50% visible with analysis limitations `S`
 - [ ] **Item Ordering** - Sort items by visibility and confidence for best quality analysis first `S`
 
-### Interactive UI & Visualization ✅
+**Priority 3: Color Detection Debugging**
+- [ ] **Color Detection Debugging** - Log color data from both APIs to identify detection issues `S`
 
-- [x] **Bounding Box Visualization** - Show detected items with visual highlighting on photos using Google Vision coordinates `M`
-- [x] **Interactive Photo Viewer Component** - Complete interactive photo viewer with touch event handling and visual feedback `L`
-- [x] **Confidence Visualization** - Display confidence levels visually for user understanding `S`
-- [x] **Selection State Management** - Implement bidirectional selection coordination between photo and list views `L`
-- [x] **Item List Integration** - Enhance item list with selection integration and visual feedback `M`
+### Interactive UI & Visualization (Incomplete)
+
+- [ ] **Bounding Box Visualization** - Show detected items with visual highlighting on photos using Google Vision coordinates `M`
+- [ ] **Interactive Photo Viewer Component** - Complete interactive photo viewer with touch event handling and visual feedback `L`
+- [ ] **Interactive Item Selection** - Click items in list to highlight on photo, click photo to select in list `L`
+- [ ] **Selection State Management** - Implement bidirectional selection coordination between photo and list views `L`
+- [ ] **Item List Integration** - Enhance item list with selection integration and visual feedback `M`
+- [ ] **Confidence Visualization** - Display confidence levels visually for user understanding `S`
 
 ### Performance & Quality ✅
 
